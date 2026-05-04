@@ -92,3 +92,15 @@ When the custom fine-tuned weights for the `gemma4-kaggle` Dysarthria model are 
 *   **Simplified Interface:** 
     *   Refactored the "Initial Prompt" field into an expandable **"Advanced Context (Optional)"** disclosure group. This reduces cognitive load for new users while maintaining power-user features.
     *   Upgraded the "Model Ready" status message to a professional, pill-shaped badge with a checkmark icon and high-contrast styling.
+
+### 4. Feedback & Fine-tuning Loop (Phase 1.5)
+*   **Correction Logic:** Implemented an "Incorrect?" feature that allows users to manually fix transcriptions.
+*   **Data Collection:**
+    *   **Audio Storage:** Permanent copies of audio files associated with corrections are saved to the `Documents/FeedbackAudio` directory.
+    *   **Log Persistence:** Metadata (timestamp, original text, corrected text, audio filename) is stored as a JSON log in `UserDefaults`.
+*   **Accuracy Statistics:** Added real-time tracking of "Total Transcriptions" vs. "Total Corrections" to provide an empirical measure of model performance.
+*   **Reporting:** Integrated a direct **Email Reporting System** using `MessageUI`.
+    *   **Direct Mail:** Uses a SwiftUI-wrapped `MFMailComposeViewController` (`MailView.swift`) to open a pre-filled email draft.
+    *   **Audio Attachments:** Automatically attaches all archived `.wav` files from the `FeedbackAudio` directory to the email, providing the developer with a complete dataset (audio + ground truth text) for fine-tuning.
+    *   **Smart Fallback:** If Mail is not configured, the app falls back to a standard `UIActivityViewController` (Share Sheet) that includes both the text report and the audio files.
+

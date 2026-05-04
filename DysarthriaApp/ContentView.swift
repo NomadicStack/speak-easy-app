@@ -1,8 +1,10 @@
 import SwiftUI
+import MessageUI
 
 struct ContentView: View {
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var transcriptionVM = TranscriptionViewModel()
+    @State private var isShowingMailView = false
     
     // Detect device size class for responsive design
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -32,17 +34,85 @@ struct ContentView: View {
                 }
                 .padding()
             } else {
-                DisclosureGroup("Advanced Context (Optional)") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("This hint helps the AI understand slurred speech better.")
+                DisclosureGroup("Advanced & Stats") {
+                    VStack(alignment: .leading, spacing: 15) {
+                        // Stats Section
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Usage Statistics")
+                                .font(.headline)
+                            HStack {
+                                Text("Total Transcriptions: \(transcriptionVM.totalTranscriptions)")
+                                Spacer()
+                                Text("Corrections: \(transcriptionVM.totalCorrections)")
+                            }
                             .font(.caption)
                             .foregroundColor(.secondary)
+                        }
                         
-                        TextField("Context (e.g. key words)", text: $transcriptionVM.initialPrompt)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(isPad ? .title3 : .body)
+                        Divider()
+                        
+                        // Context Section
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("AI Hint (Context)")
+                                .font(.headline)
+                            Text("This helps the AI understand slurred speech better.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            TextField("Context (e.g. key words)", text: $transcriptionVM.initialPrompt)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
+                        }
+                        
+                        Divider()
+                        
+                        // Report Section
+                        if transcriptionVM.totalCorrections > 0 {
+                            Button(action: {
+                                if MFMailComposeViewController.canSendMail() {
+                                    isShowingMailView = true
+                                } else {
+                                    // Fallback to share sheet if mail is not configured
+                                    let report = transcriptionVM.prepareFeedbackReport()
+                                    let audioURLs = transcriptionVM.getFeedbackAudioURLs()
+                                    var items: [Any] = [report]
+                                    items.append(contentsOf: audioURLs)
+                                    
+                                    let av = UIActivityViewController(activityItems: items, applicationActivities: nil)
+                                    
+                                    // Fix for iPad crash: Set popover source
+                                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                       let rootVC = windowScene.windows.first?.rootViewController {
+                                        
+                                        if let popover = av.popoverPresentationController {
+                                            popover.sourceView = rootVC.view
+                                            popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                                            popover.permittedArrowDirections = []
+                                        }
+                                        
+                                        rootVC.present(av, animated: true)
+                                    }
+                                }
+                            }) {
+                                Label("Send Feedback Report", systemImage: "envelope.fill")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(8)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
+                            .sheet(isPresented: $isShowingMailView) {
+                                MailView(
+                                    recipient: "developer@example.com", // Replace with your actual email
+                                    subject: "SpeakEasy Feedback Report",
+                                    body: transcriptionVM.prepareFeedbackReport(),
+                                    attachments: transcriptionVM.getFeedbackAudioURLs()
+                                ) { result in
+                                    print("Mail result: \(result)")
+                                }
+                            }
+                        }
                     }
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 10)
                 }
                 .padding(.horizontal, isPad ? 60 : 20)
                 .font(.subheadline)
@@ -70,6 +140,17 @@ struct ContentView: View {
                 
                 Spacer()
                 
+                if !transcriptionVM.isEditing && transcriptionVM.transcribedText != "Press record to start." && !transcriptionVM.isTranscribing {
+                    Button(action: {
+                        transcriptionVM.isEditing = true
+                    }) {
+                        Label("Incorrect?", systemImage: "pencil.and.outline")
+                            .foregroundColor(.orange)
+                    }
+                    
+                    Spacer()
+                }
+                
                 Button(action: {
                     UIPasteboard.general.string = transcriptionVM.transcribedText
                 }) {
@@ -85,15 +166,46 @@ struct ContentView: View {
             .padding(.horizontal, isPad ? 60 : 20)
             
             ScrollView {
-                Text(transcriptionVM.transcribedText)
-                    .font(isPad ? .system(size: 54, weight: .bold) : .system(size: 34, weight: .bold))
-                    .padding(isPad ? 30 : 20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if transcriptionVM.isEditing {
+                    VStack(alignment: .trailing) {
+                        TextEditor(text: $transcriptionVM.transcribedText)
+                            .font(isPad ? .system(size: 34, weight: .bold) : .system(size: 24, weight: .bold))
+                            .frame(minHeight: 200)
+                            .padding(isPad ? 30 : 20)
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Save Correction") {
+                                        transcriptionVM.saveCorrection()
+                                    }
+                                    .bold()
+                                    .foregroundColor(.blue)
+                                }
+                            }
+                        
+                        Button(action: {
+                            transcriptionVM.saveCorrection()
+                        }) {
+                            Text("Save Correction")
+                                .bold()
+                                .padding()
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+                        .padding([.bottom, .trailing])
+                    }
+                } else {
+                    Text(transcriptionVM.transcribedText)
+                        .font(isPad ? .system(size: 54, weight: .bold) : .system(size: 34, weight: .bold))
+                        .padding(isPad ? 30 : 20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             .background(Color.gray.opacity(0.1))
             .cornerRadius(16)
             .padding(.horizontal, isPad ? 60 : 20)
-            .frame(maxWidth: 900) // Caps the width elegantly on very large iPad Pro screens
+            .frame(maxWidth: 900)
             
             if transcriptionVM.isTranscribing {
                 HStack(spacing: 15) {

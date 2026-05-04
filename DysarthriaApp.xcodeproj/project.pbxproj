@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		972463562FA8137A00E244EE /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 972463552FA8137A00E244EE /* WhisperKit */; };
+		972463742FA8377500E244EE /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972463732FA8377500E244EE /* MailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		9724633E2FA8105900E244EE /* DysarthriaApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DysarthriaApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		972463732FA8377500E244EE /* MailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -39,6 +41,7 @@
 			children = (
 				972463402FA8105900E244EE /* DysarthriaApp */,
 				9724633F2FA8105900E244EE /* Products */,
+				972463732FA8377500E244EE /* MailView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -128,6 +131,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				972463742FA8377500E244EE /* MailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -260,6 +264,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8VZ8M4A64U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record and transcribe dysarthiric speech.";
@@ -292,6 +297,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8VZ8M4A64U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record and transcribe dysarthiric speech.";

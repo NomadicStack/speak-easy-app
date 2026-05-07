@@ -10,11 +10,12 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     func startRecording() {
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default)
+            try session.setCategory(.playAndRecord, mode: .default, options: .defaultToSpeaker)
             try session.setActive(true)
             
             let tempDir = FileManager.default.temporaryDirectory
-            let fileURL = tempDir.appendingPathComponent("recording.wav")
+            let fileName = "recording_\(UUID().uuidString).wav"
+            let fileURL = tempDir.appendingPathComponent(fileName)
             recordingURL = fileURL
             
             // WhisperKit requires 16kHz PCM audio
@@ -24,7 +25,7 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 AVNumberOfChannelsKey: 1,
                 AVLinearPCMBitDepthKey: 16,
                 AVLinearPCMIsFloatKey: false,
-                AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
             
             audioRecorder = try AVAudioRecorder(url: fileURL, settings: settings)
@@ -39,6 +40,11 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     func stopRecording() -> URL? {
         audioRecorder?.stop()
         isRecording = false
+        
+        // Deactivate audio session to release resources
+        let session = AVAudioSession.sharedInstance()
+        try? session.setActive(false, options: .notifyOthersOnDeactivation)
+        
         return recordingURL
     }
 }

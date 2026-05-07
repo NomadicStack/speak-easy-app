@@ -38,8 +38,8 @@ To unblock iOS development, we will use the `openai_whisper-small.en` model prov
 *   **Decoding Configuration:**
     ```swift
     var options = DecodingOptions()
-    options.beamSize = 5             // Helps evaluate multiple phonetic paths
-    options.temperature = [0.0, 0.2] // Restricts hallucinations
+    options.temperature = 0.0
+    options.temperatureIncrementOnFallback = 0.2
     options.initialPrompt = self.initialPrompt // Dynamic context from UI
     ```
 *   **Execution:** Pass the recorded audio URL to `whisperKit.transcribe(audioPath: decodedOptions:)` when the user stops recording.

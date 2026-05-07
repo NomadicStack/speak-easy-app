@@ -55,16 +55,16 @@ let whisperKit = try await WhisperKit(config)
 Fine-tune decoding parameters to handle phonetic variability:
 ```swift
 var options = DecodingOptions()
-options.beamSize = 5             // Increased for dysarthria accuracy
-options.temperature = [0.0, 0.2] // Helps model explore alternatives if unsure
-options.initialPrompt = "The user is speaking clearly." // Contextual bias
+options.temperature = 0.0        // Uses greedy decoding for speed and stability
+options.temperatureIncrementOnFallback = 0.2 // Fallback for complex speech
+options.initialPrompt = "The following is speech from a person with dysarthria..." // Contextual bias
 ```
 
 **C. Transcription Call**
 Executed once the user stops the recording.
 ```swift
 func processAudio(at url: URL) async {
-    let results = try? await whisperKit.transcribe(audioPath: url.path, decodedOptions: options)
+    let results = try? await whisperKit.transcribe(audioPath: url.path, decodeOptions: options)
     self.onScreenText = results?.first?.text ?? ""
 }
 ```
@@ -74,7 +74,7 @@ func processAudio(at url: URL) async {
 | Feature | Implementation | Benefit |
 | :--- | :--- | :--- |
 | **Manual Gating** | User-controlled Start/Stop buttons. | Prevents auto-VAD from cutting off slow speech or labored breathing. |
-| **Beam Search** | Set `beamSize` to 5 or higher. | Evaluates multiple phonetic paths, crucial for slurred or quiet consonants. |
+| **Greedy Decoding** | `temperature = 0.0` with fallbacks. | Maximizes Neural Engine performance while allowing retries for slurred consonants. |
 | **Local Inference** | 100% on-device (ANE). | No latency spikes; maintains privacy for sensitive clinical data. |
 | **Initial Prompting** | Pass frequent vocabulary to `initialPrompt`. | Corrects common misinterpretations of the speaker's unique vocal patterns. |
 

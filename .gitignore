@@ -30,9 +30,6 @@ DerivedData/
 !default.perspectivev3
 *.xccheckout
 *.moved-aside
-*.xcuserstate
-*.itunesartwork
-*.ipa
 *.xcscheme
 *.plist
 
@@ -74,6 +71,11 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Models and Large Assets
+DysarthriaApp/Models/
+model/
+venv312/
 
 # Others
 *.swp

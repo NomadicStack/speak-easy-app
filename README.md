@@ -13,6 +13,14 @@ SpeakEasy is a specialized iOS application designed to provide high-accuracy spe
 - **Native Integration:** Easily copy or share transcriptions via the native iOS share sheet.
 - **Professional UI:** A clean, modern interface branded for a positive user experience.
 
+## 💾 Storage & Privacy
+
+To provide 100% offline transcription and protect user privacy, SpeakEasy bundles a custom fine-tuned AI model directly within the app.
+
+- **Total App Size:** ~500 MB – 550 MB
+- **Model Size:** ~468 MB (Custom Dysarthria Model)
+- **Data Privacy:** Because the model is stored locally, your voice recordings are never uploaded to the cloud or shared with third parties.
+
 ## 🛠 Tech Stack
 
 - **Language:** Swift 5.10+
@@ -46,9 +54,12 @@ SpeakEasy is a specialized iOS application designed to provide high-accuracy spe
 5. Build and Run (**Cmd + R**).
 
 ## 📝 Recent Updates (May 2026)
+- **Transcription Stability:** Fixed "No transcription returned" issues by implementing unique recording filenames and disabling problematic `promptTokens`.
+- **Improved Silence Handling:** Optimized the model to handle recordings with leading silence more gracefully.
+- **Smart Storage Management:** Implemented a "one-in, one-out" cleanup strategy to keep the app lightweight while preserving audio for user corrections.
+- **iPad Optimization:** Enhanced audio routing and deactivation for better reliability on iPad hardware.
 - **Rebranded to SpeakEasy:** Improved the clinical feel of the app with a friendlier UI.
 - **Massive Typography:** Optimized font sizes for visibility and accessibility.
-- **Stability Fixes:** Enhanced audio recording reliability in the iOS Simulator.
 - **Advanced Context:** Added an expandable section for AI prompting.
 
 ## ⚖️ License

@@ -17,7 +17,7 @@ class TranscriptionViewModel: ObservableObject {
     @Published var isTranscribing: Bool = false
     @Published var modelLoadingMessage: String = "Loading model..."
     @Published var isModelLoaded: Bool = false
-    @Published var initialPrompt: String = "The user is speaking clearly."
+    @Published var initialPrompt: String = "The following is a transcription of a speaker with dysarthria, focusing on clear and accurate text output."
     
     // Stats and Feedback
     @Published var totalTranscriptions: Int = 0
@@ -40,22 +40,43 @@ class TranscriptionViewModel: ObservableObject {
     
     func initializeWhisperKit() async {
         do {
-            // Phase 1: Temporary setup using base whisper-small.en
-            // This will automatically download the CoreML model on first run if not bundled.
-            self.modelLoadingMessage = "Downloading/Loading openai_whisper-small.en..."
+            self.modelLoadingMessage = "Loading custom dysarthria model..."
+            
+            // Check if model components exist in the bundle root (flattened) or a subfolder
+            let bundleURL = Bundle.main.bundleURL
+            let modelFolder: String
+            let tokenizerURL: URL
+            let modelName: String
+            
+            if let customFolderURL = Bundle.main.url(forResource: "CustomDysarthriaModel", withExtension: nil) {
+                // Folder reference (retains structure)
+                modelName = "CustomDysarthriaModel"
+                modelFolder = customFolderURL.deletingLastPathComponent().path
+                tokenizerURL = customFolderURL
+            } else {
+                // Flattened group (files at root)
+                modelName = "" // Empty model name works with modelFolder pointing directly to components
+                modelFolder = bundleURL.path
+                tokenizerURL = bundleURL
+            }
+            
             let config = WhisperKitConfig(
-                model: "openai_whisper-small.en",
+                model: modelName,
+                modelFolder: modelFolder,
+                tokenizerFolder: tokenizerURL,
                 computeOptions: ModelComputeOptions(
                     melCompute: .cpuAndNeuralEngine,
                     audioEncoderCompute: .cpuAndNeuralEngine,
                     textDecoderCompute: .cpuAndNeuralEngine
-                )
+                ),
+                download: false
             )
+            
             self.whisperKit = try await WhisperKit(config)
             self.isModelLoaded = true
-            self.modelLoadingMessage = "Model ready"
+            self.modelLoadingMessage = "Model ready (Custom)"
         } catch {
-            self.modelLoadingMessage = "Error loading model: \(error.localizedDescription)"
+            self.modelLoadingMessage = "Error: \(error.localizedDescription)"
             print("WhisperKit initialization error: \(error)")
         }
     }
@@ -152,6 +173,11 @@ class TranscriptionViewModel: ObservableObject {
             return
         }
         
+        // Cleanup previous recording if it exists and wasn't saved
+        if let previousURL = self.lastAudioURL, previousURL != url {
+            try? FileManager.default.removeItem(at: previousURL)
+        }
+        
         self.lastAudioURL = url
         self.isTranscribing = true
         self.transcribedText = "Transcribing..."
@@ -159,15 +185,28 @@ class TranscriptionViewModel: ObservableObject {
         Task {
             do {
                 var options = DecodingOptions()
-                options.topK = 5 // Keep sampling constrained for more stable output.
                 options.temperature = 0.0
                 options.temperatureIncrementOnFallback = 0.2
-                if let tokenizer = whisperKit.tokenizer {
-                    options.promptTokens = tokenizer.encode(text: self.initialPrompt)
-                }
+                options.suppressBlank = false // Help with initial silence
+                
+                // Note: promptTokens is currently disabled due to reports of empty results in some WhisperKit versions
+                // if let tokenizer = whisperKit.tokenizer {
+                //     options.promptTokens = tokenizer.encode(text: self.initialPrompt)
+                // }
                 
                 // Transcribe the audio file
+                print("Starting transcription for file: \(url.path)")
+                if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) {
+                    let fileSize = attributes[.size] as? Int64 ?? 0
+                    print("Audio file size: \(fileSize) bytes")
+                }
+                
                 let result = try await whisperKit.transcribe(audioPath: url.path, decodeOptions: options)
+                print("Transcription completed. Result count: \(result.count)")
+                
+                if let firstResult = result.first {
+                    print("Top transcription: '\(firstResult.text)'")
+                }
                 
                 if let text = result.first?.text, !text.isEmpty {
                     self.transcribedText = text

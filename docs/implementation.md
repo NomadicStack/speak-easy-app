@@ -25,7 +25,7 @@ The application follows the **MVVM (Model-View-ViewModel)** architectural patter
     *   **Share:** Integrates the native `ShareLink` to export text to other apps.
 *   **Context Input:** Includes a `TextField` bound to `transcriptionVM.initialPrompt`, allowing users to provide real-time hints to the model.
 *   **iPad Responsive Design:** 
-    *   Uses `@Environment(\.horizontalSizeClass)` and `.verticalSizeClass` to detect iPad usage (`.regular` size classes).
+    *   Uses `@Environment(\.horizontalSizeClass)` and `.verticalSizeClass) to detect iPad usage (`.regular` size classes).
     *   **Dynamic Scaling:** Automatically scales up typography (e.g., `.system(size: 50)` for headers) and expands touch targets (the record button scales from 80pt to 120pt) for accessibility.
     *   **Layout Constraints:** Constrains the transcription text box to a `maxWidth` of 900pt to prevent awkward, unreadable stretching on large 12.9" iPad Pro screens.
 *   **State Awareness:** Binds to `audioRecorder.isRecording` and `transcriptionVM.isModelLoaded` to disable buttons and update UI states (like showing the loading spinner) in real-time.
@@ -49,27 +49,40 @@ The application follows the **MVVM (Model-View-ViewModel)** architectural patter
 *   **Transcription Logic & Decoding Options:** 
     *   Exposes `transcribeAudio(at:)` which receives the temporary `.wav` file.
     *   Applies dysarthria-specific decoding adjustments:
-        *   `beamSize = 5`: Forces the model to evaluate a wider range of phonetic paths, greatly improving accuracy for slurred or indistinct consonants.
-        *   `temperature = [0.0, 0.2]`: Keeps hallucinations low by restricting the model's randomness when guessing words.
+        *   `temperature = 0.0`: Uses greedy decoding for high stability.
+        *   `temperatureIncrementOnFallback = 0.2`: Allows the model to retry with sampling if the initial result is poor, which helps with slurred or indistinct consonants.
         *   `initialPrompt`: Dynamically passed from the UI. This allows for "contextual priming" (e.g., providing key words the speaker is likely to say), which is a powerful tool for improving accuracy in slurred speech.
 
 ---
 
-## Migration Path to Phase 2
-When the custom fine-tuned weights for the `gemma4-kaggle` Dysarthria model are finalized, the app's architecture allows for a seamless drop-in replacement.
+## Completed: Phase 2 Migration (Custom Dysarthria Model)
+The custom fine-tuned weights for the Dysarthria model have been successfully integrated into the application.
 
-1.  Generate the CoreML folder using `whisperkittools`.
-2.  Drag the generated `./Models/CustomDysarthriaModel` folder into the Xcode project (add to "Copy Bundle Resources").
-3.  Update the initialization in `TranscriptionViewModel.swift`:
+1.  **Model Conversion:**
+    *   Used `whisperkittools` in a stable Python 3.12 environment to convert the fine-tuned PyTorch weights to CoreML (`.mlmodelc`).
+    *   **Accuracy Fix:** Enabled `use_cache: true` in `config.json` to resolve initial correctness issues during the conversion of the Text Decoder.
+2.  **Bundle Integration:**
+    *   The converted model components (`AudioEncoder`, `TextDecoder`, `MelSpectrogram`) and metadata (`config.json`, `tokenizer.json`) are bundled in the `Models/CustomDysarthriaModel` directory.
+3.  **Code Implementation:**
     ```swift
-    // Update the config to point to the local bundled model
-    let modelURL = Bundle.main.url(forResource: "CustomDysarthriaModel", withExtension: nil)!
-    let config = WhisperKitConfig(
-        model: "CustomDysarthriaModel", 
-        modelFolder: modelURL,
-        computeUnits: .all // Prioritizes ANE
-    )
-    self.whisperKit = try await WhisperKit(config)
+    // TranscriptionViewModel.swift
+    func initializeWhisperKit() async {
+        // ...
+        let modelURL = Bundle.main.url(forResource: "CustomDysarthriaModel", withExtension: nil)!
+        let config = WhisperKitConfig(
+            model: "CustomDysarthriaModel", 
+            modelFolder: modelURL.deletingLastPathComponent().path,
+            tokenizerFolder: modelURL,
+            computeOptions: ModelComputeOptions(
+                melCompute: .cpuAndNeuralEngine,
+                audioEncoderCompute: .cpuAndNeuralEngine,
+                textDecoderCompute: .cpuAndNeuralEngine
+            ),
+            download: false // Ensures local model is used
+        )
+        self.whisperKit = try await WhisperKit(config)
+        // ...
+    }
     ```
 
 ---
@@ -104,3 +117,11 @@ When the custom fine-tuned weights for the `gemma4-kaggle` Dysarthria model are 
     *   **Audio Attachments:** Automatically attaches all archived `.wav` files from the `FeedbackAudio` directory to the email, providing the developer with a complete dataset (audio + ground truth text) for fine-tuning.
     *   **Smart Fallback:** If Mail is not configured, the app falls back to a standard `UIActivityViewController` (Share Sheet) that includes both the text report and the audio files.
 
+### 5. Transcription Pipeline Stability (May 2026)
+*   **File Collision Avoidance:** Refactored `AudioRecorder` to generate unique filenames using UUIDs (e.g., `recording_UUID.wav`). This prevents race conditions where the recorder might overwrite a file that the WhisperKit engine is still actively reading for transcription.
+*   **WhisperKit Compatibility:** Disabled the `promptTokens` property in `DecodingOptions` following reports in the WhisperKit community of intermittent empty results ("No transcription returned"). The app now relies on standard model inference for higher reliability.
+*   **Graceful Silence Handling:** Configured `suppressBlank = false` in `DecodingOptions`. This ensures that recordings with several seconds of leading silence (common in dysarthric speech patterns) are not prematurely discarded as empty by the model.
+*   **Storage Resource Management:** Implemented a **"one-in, one-out"** cleanup strategy in `TranscriptionViewModel`. 
+    *   The app deletes the *previous* temporary recording as soon as a new transcription begins.
+    *   This ensures that the device's temporary storage never grows beyond one audio file (~1-2 MB), while still keeping the current audio available for the "Save Correction" feature.
+*   **iPad Audio Routing:** Enhanced `AVAudioSession` configuration with `.defaultToSpeaker` and proper deactivation calls (`setActive(false)`) to prevent routing issues and release hardware resources on iPad devices.

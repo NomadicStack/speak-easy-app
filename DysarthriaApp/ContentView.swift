@@ -113,58 +113,58 @@ struct ContentView: View {
                         }
                     }
                     .padding(.vertical, 10)
-                }
-                .padding(.horizontal, isPad ? 60 : 20)
-                .font(.subheadline)
-                .accentColor(.secondary)
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Model Ready")
-                }
-                .font(.subheadline.bold())
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(Color.green))
-                .shadow(radius: 2)
-            }
-            
-            HStack {
-                Button(action: {
-                    transcriptionVM.clearTranscription()
-                }) {
-                    Label("Clear", systemImage: "trash")
-                }
-                .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
-                
-                Spacer()
-                
-                if !transcriptionVM.isEditing && transcriptionVM.transcribedText != "Press record to start." && !transcriptionVM.isTranscribing {
-                    Button(action: {
-                        transcriptionVM.isEditing = true
-                    }) {
-                        Label("Incorrect?", systemImage: "pencil.and.outline")
-                            .foregroundColor(.orange)
                     }
-                    
+                    .padding(.horizontal, isPad ? 60 : 20)
+                    .font(.subheadline)
+                    .accentColor(.secondary)
+                    }
+
+                    if transcriptionVM.isModelLoaded {
+                    HStack {
+                    if !transcriptionVM.isEditing && transcriptionVM.transcribedText != "Press record to start." && !transcriptionVM.isTranscribing {
+                        Button(action: {
+                            transcriptionVM.isEditing = true
+                        }) {
+                            Label("Incorrect?", systemImage: "pencil.and.outline")
+                                .foregroundColor(.orange)
+                        }
+                    } else {
+                        // Placeholder to maintain centering when Incorrect button is hidden
+                        Color.clear.frame(width: 80, height: 1)
+                    }
+
                     Spacer()
-                }
-                
-                Button(action: {
-                    UIPasteboard.general.string = transcriptionVM.transcribedText
-                }) {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-                .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
-                
-                ShareLink(item: transcriptionVM.transcribedText) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
-            }
-            .padding(.horizontal, isPad ? 60 : 20)
-            
+
+                    // Model Ready Badge in the middle
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                        Text("Model Ready")
+                            .font(.caption.bold())
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.green))
+
+                    Spacer()
+
+                    HStack(spacing: isPad ? 30 : 20) {
+                        Button(action: {
+                            UIPasteboard.general.string = transcriptionVM.transcribedText
+                        }) {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                        .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
+
+                        ShareLink(item: transcriptionVM.transcribedText) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
+                    }
+                    }
+                    .padding(.horizontal, isPad ? 60 : 20)
+                    }            
             ScrollView {
                 if transcriptionVM.isEditing {
                     VStack(alignment: .trailing) {
@@ -222,40 +222,62 @@ struct ContentView: View {
             
             Spacer()
             
-            // Record Button
-            Button(action: {
-                if audioRecorder.isRecording {
-                    if let url = audioRecorder.stopRecording() {
-                        transcriptionVM.transcribeAudio(at: url)
-                    }
-                } else {
-                    audioRecorder.startRecording()
-                }
-            }) {
-                ZStack {
-                    // Larger button size on iPads
-                    let buttonSize: CGFloat = isPad ? 120 : 80
-                    
-                    Circle()
-                        .fill(audioRecorder.isRecording ? Color.red : Color.blue)
-                        .frame(width: buttonSize, height: buttonSize)
-                        .shadow(radius: isPad ? 8 : 5)
-                    
-                    if audioRecorder.isRecording {
-                        // Stop square
-                        RoundedRectangle(cornerRadius: isPad ? 8 : 4)
-                            .fill(Color.white)
-                            .frame(width: buttonSize * 0.35, height: buttonSize * 0.35)
-                    } else {
-                        // Microphone icon
-                        Image(systemName: "mic.fill")
+            // Record and Clear Buttons
+            HStack(spacing: isPad ? 60 : 40) {
+                // Clear Button
+                Button(action: {
+                    transcriptionVM.clearTranscription()
+                }) {
+                    ZStack {
+                        let buttonSize: CGFloat = isPad ? 100 : 70
+                        Circle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: buttonSize, height: buttonSize)
+                            .shadow(radius: isPad ? 5 : 3)
+                        
+                        Image(systemName: "trash")
                             .font(.system(size: buttonSize * 0.4, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
                 }
+                .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
+                .opacity((transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing) ? 0.3 : 1.0)
+                
+                // Record Button
+                Button(action: {
+                    if audioRecorder.isRecording {
+                        if let url = audioRecorder.stopRecording() {
+                            transcriptionVM.transcribeAudio(at: url)
+                        }
+                    } else {
+                        audioRecorder.startRecording()
+                    }
+                }) {
+                    ZStack {
+                        // Larger button size on iPads
+                        let buttonSize: CGFloat = isPad ? 140 : 100
+                        
+                        Circle()
+                            .fill(audioRecorder.isRecording ? Color.red : Color.blue)
+                            .frame(width: buttonSize, height: buttonSize)
+                            .shadow(radius: isPad ? 10 : 7)
+                        
+                        if audioRecorder.isRecording {
+                            // Stop square
+                            RoundedRectangle(cornerRadius: isPad ? 10 : 6)
+                                .fill(Color.white)
+                                .frame(width: buttonSize * 0.35, height: buttonSize * 0.35)
+                        } else {
+                            // Microphone icon
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: buttonSize * 0.4, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                }
+                .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing)
+                .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
             }
-            .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing)
-            .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
             .padding(.bottom, isPad ? 80 : 50)
         }
     }

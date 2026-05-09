@@ -180,7 +180,6 @@ class TranscriptionViewModel: ObservableObject {
         
         self.lastAudioURL = url
         self.isTranscribing = true
-        self.transcribedText = "Transcribing..."
         
         Task {
             do {
@@ -205,16 +204,37 @@ class TranscriptionViewModel: ObservableObject {
                 print("Transcription completed. Result count: \(result.count)")
                 
                 if let firstResult = result.first {
-                    print("Top transcription: '\(firstResult.text)'")
-                }
-                
-                if let text = result.first?.text, !text.isEmpty {
-                    self.transcribedText = text
-                    self.originalTranscription = text
-                    self.totalTranscriptions += 1
-                    UserDefaults.standard.set(totalTranscriptions, forKey: "total_transcriptions")
+                    // Join segments with spaces and clean special tokens (e.g., <|...|>)
+                    let newText = firstResult.segments
+                        .map { segment in
+                            segment.text
+                                .replacingOccurrences(of: "<\\|.*?\\|>", with: "", options: .regularExpression)
+                                .trimmingCharacters(in: .whitespaces)
+                        }
+                        .filter { !$0.isEmpty }
+                        .joined(separator: " ")
+                    
+                    if !newText.isEmpty {
+                        // Append to existing text if it's not the default message
+                        if self.transcribedText == "Press record to start." || 
+                           self.transcribedText == "[No transcription returned]" ||
+                           self.transcribedText == "Transcribing..." {
+                            self.transcribedText = newText
+                        } else {
+                            // Ensure there is a newline between different recording sessions
+                            let currentText = self.transcribedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                            self.transcribedText = currentText + "\n" + newText
+                        }
+                        self.originalTranscription = self.transcribedText
+                        self.totalTranscriptions += 1
+                        UserDefaults.standard.set(totalTranscriptions, forKey: "total_transcriptions")
+                    } else if self.transcribedText == "Press record to start." || self.transcribedText == "Transcribing..." {
+                        self.transcribedText = "[No transcription returned]"
+                    }
                 } else {
-                    self.transcribedText = "[No transcription returned]"
+                    if self.transcribedText == "Press record to start." || self.transcribedText == "Transcribing..." {
+                        self.transcribedText = "[No transcription returned]"
+                    }
                 }
             } catch {
                 self.transcribedText = "Error during transcription: \(error.localizedDescription)"

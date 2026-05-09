@@ -118,10 +118,21 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
     *   **Smart Fallback:** If Mail is not configured, the app falls back to a standard `UIActivityViewController` (Share Sheet) that includes both the text report and the audio files.
 
 ### 5. Transcription Pipeline Stability (May 2026)
-*   **File Collision Avoidance:** Refactored `AudioRecorder` to generate unique filenames using UUIDs (e.g., `recording_UUID.wav`). This prevents race conditions where the recorder might overwrite a file that the WhisperKit engine is still actively reading for transcription.
-*   **WhisperKit Compatibility:** Disabled the `promptTokens` property in `DecodingOptions` following reports in the WhisperKit community of intermittent empty results ("No transcription returned"). The app now relies on standard model inference for higher reliability.
-*   **Graceful Silence Handling:** Configured `suppressBlank = false` in `DecodingOptions`. This ensures that recordings with several seconds of leading silence (common in dysarthric speech patterns) are not prematurely discarded as empty by the model.
-*   **Storage Resource Management:** Implemented a **"one-in, one-out"** cleanup strategy in `TranscriptionViewModel`. 
-    *   The app deletes the *previous* temporary recording as soon as a new transcription begins.
-    *   This ensures that the device's temporary storage never grows beyond one audio file (~1-2 MB), while still keeping the current audio available for the "Save Correction" feature.
-*   **iPad Audio Routing:** Enhanced `AVAudioSession` configuration with `.defaultToSpeaker` and proper deactivation calls (`setActive(false)`) to prevent routing issues and release hardware resources on iPad devices.
+*   **File Collision Avoidance:** Refactored `AudioRecorder` to generate unique filenames using UUIDs.
+*   **WhisperKit Compatibility:** Disabled the `promptTokens` property in `DecodingOptions` for higher reliability.
+*   **Graceful Silence Handling:** Configured `suppressBlank = false` in `DecodingOptions`.
+*   **Storage Resource Management:** Implemented a "one-in, one-out" cleanup strategy in `TranscriptionViewModel`.
+*   **iPad Audio Routing:** Enhanced `AVAudioSession` configuration with `.defaultToSpeaker`.
+
+### 6. Transcription Concatenation & Formatting Fixes (May 2026)
+*   **Manual Segment Joining:** Resolved an issue where WhisperKit's default `text` property concatenated segments without spaces. The pipeline now manually iterates through `TranscriptionResult.segments`, trims whitespace, and joins them with a single space.
+*   **Special Token Cleaning:** Implemented a regular expression (`<\\|.*?\\|>`) to strip Whisper special tokens (e.g., `<|startoftranscript|>`, `<|0.00|>`) from the raw segment text, ensuring only the intended speech is displayed.
+*   **Session-Based Newlines:** To improve readability, the app now separates different recording sessions (start/stop) with a newline (`\n`), while keeping speech within a single recording on one line.
+*   **Persistent Visibility:** Removed the "Transcribing..." placeholder that previously overwrote existing text, allowing users to view previous transcriptions while new audio is being processed.
+
+### 7. UI/UX Redesign for High-Frequency Actions (May 2026)
+*   **Dual-Button Control Bar:** Relocated the **Clear** action from the toolbar to a prominent, large circular button at the bottom of the screen, mirroring the **Record** button.
+*   **Enhanced Accessibility:**
+    *   **Record Button:** Increased to 100pt (iPhone) / 140pt (iPad).
+    *   **Clear Button:** Sized at 70pt (iPhone) / 100pt (iPad) for easy thumb access during rapid usage cycles.
+*   **Visual Feedback:** The button bar utilizes dynamic opacity to indicate state (e.g., dimming the Clear button when the text is empty or transcription is in progress).

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeakEasy - Smart AAC Expander</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-mesh">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="brand">
+                    <i class="fa-solid fa-bolt text-accent"></i>
+                    <h1>Smart AAC Expander</h1>
+                </div>
+                <div class="status-badge">
+                    <i class="fa-solid fa-microchip"></i> Gemma 4 2B Ready
+                </div>
+            </div>
+            <p class="subtitle">Save energy by typing shorthand. Let the on-device AI expand it into natural speech.</p>
+        </header>
+
+        <section class="input-section glass-panel">
+            <div class="input-header">
+                <h2>Shorthand Input</h2>
+                <div class="char-count">0 / 50</div>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="shorthand-input" placeholder="e.g. 'coffee no sugar cold'" value="bus stuck late work">
+                <button id="clear-btn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="quick-chips">
+                <button class="chip" data-text="thirsty want water">💧 thirsty want water</button>
+                <button class="chip" data-text="doc appt tomorrow 9">🏥 doc appt tomorrow 9</button>
+                <button class="chip" data-text="hungry order pizza">🍕 hungry order pizza</button>
+            </div>
+            <button id="expand-btn" class="btn primary glow full-width">
+                <i class="fa-solid fa-brain"></i> Expand with AI
+            </button>
+        </section>
+
+        <section class="results-section">
+            <div id="loading-state" class="state-view hidden">
+                <div class="ai-pulse">
+                    <div class="pulse-ring"></div>
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <h3 class="loading-text">Generating variations locally...</h3>
+            </div>
+
+            <div id="options-container" class="options-grid hidden">
+                <!-- Expanded options will be injected here via JS -->
+            </div>
+
+            <div id="refinement-container" class="refinement-section hidden glass-panel mt-4">
+                <div class="input-header">
+                    <h2><i class="fa-solid fa-microphone-lines"></i> Not quite right?</h2>
+                </div>
+                <p class="subtitle text-sm mt-2">Dictate more context to refine the sentences.</p>
+                <div class="search-bar mt-4">
+                    <input type="text" id="refinement-input" placeholder="e.g. 'pepperoni'">
+                    <button id="refine-btn" class="btn primary small"><i class="fa-solid fa-rotate-right"></i> Refine</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <i class="fa-solid fa-volume-high"></i> <span id="toast-msg">Speaking out loud...</span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

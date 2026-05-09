@@ -4,7 +4,8 @@ import MessageUI
 struct ContentView: View {
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var transcriptionVM = TranscriptionViewModel()
-    @State private var isShowingMailView = false
+    @StateObject private var aacVM = AACViewModel()
+    @State private var selectedTab = 0
     
     // Detect device size class for responsive design
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -15,6 +16,58 @@ struct ContentView: View {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
     }
     
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
+                .tabItem {
+                    Label("Transcribe", systemImage: "waveform")
+                }
+                .tag(0)
+            
+            AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)
+                .tabItem {
+                    Label("Smart Speak", systemImage: "sparkles")
+                }
+                .tag(1)
+        }
+        .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
+            // If transcription just finished and we're on the expander tab, trigger expansion
+            if !isTranscribing && selectedTab == 1 {
+                let newText = transcriptionVM.transcribedText
+                let cleanText = newText.replacingOccurrences(of: "Press record to start.", with: "")
+                    .replacingOccurrences(of: "[No transcription returned]", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !cleanText.isEmpty {
+                    // Update shorthand and trigger expansion
+                    if aacVM.shorthandInput.isEmpty {
+                        aacVM.shorthandInput = cleanText
+                    } else {
+                        // We clear transcriptionVM before recording in Smart Speak tab,
+                        // so cleanText only contains the latest spoken words.
+                        // We just check if it's already there to be safe.
+                        let currentShorthand = aacVM.shorthandInput.lowercased()
+                        if !currentShorthand.contains(cleanText.lowercased()) {
+                            aacVM.shorthandInput += " " + cleanText
+                        }
+                    }
+                    
+                    Task {
+                        await aacVM.expand()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct TranscriptionView: View {
+    @ObservedObject var audioRecorder: AudioRecorder
+    @ObservedObject var transcriptionVM: TranscriptionViewModel
+    var isPad: Bool
+    
+    @State private var isShowingMailView = false
+
     var body: some View {
         VStack(spacing: isPad ? 40 : 30) {
             Text("SpeakEasy")

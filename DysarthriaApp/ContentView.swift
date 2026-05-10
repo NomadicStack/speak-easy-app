@@ -18,23 +18,26 @@ struct ContentView: View {
     }
     
     var body: some View {
-        if !hasCompletedOnboarding {
-            OnboardingView()
-        } else {
-            TabView(selection: $selectedTab) {
-                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
-                    .tabItem {
-                        Label("Transcribe", systemImage: "waveform")
-                    }
-                    .tag(0)
-                
-                AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)
-                    .tabItem {
-                        Label("Smart Speak", systemImage: "sparkles")
-                    }
-                    .tag(1)
+        TabView(selection: $selectedTab) {
+            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
+                .tabItem {
+                    Label("Transcribe", systemImage: "waveform")
+                }
+                .tag(0)
+            
+            Group {
+                if !hasCompletedOnboarding {
+                    OnboardingView()
+                } else {
+                    AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)
+                }
             }
-            .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
+            .tabItem {
+                Label("Smart Speak", systemImage: "sparkles")
+            }
+            .tag(1)
+        }
+        .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
                 // If transcription just finished and we're on the expander tab, trigger expansion
                 if !isTranscribing && selectedTab == 1 {
                     let newText = transcriptionVM.transcribedText
@@ -64,7 +67,6 @@ struct ContentView: View {
             }
         }
     }
-}
 
 struct TranscriptionView: View {
     @ObservedObject var audioRecorder: AudioRecorder
@@ -76,24 +78,6 @@ struct TranscriptionView: View {
 
     var body: some View {
         VStack(spacing: isPad ? 40 : 30) {
-            HStack {
-                Spacer()
-                Button(action: {
-                    isShowingModelSelection = true
-                }) {
-                    Image(systemName: "brain.head.profile")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                }
-                .padding(.trailing, 20)
-            }
-            .padding(.top, 10)
-            .sheet(isPresented: $isShowingModelSelection) {
-                NavigationView {
-                    ModelSelectionView()
-                }
-            }
-            
             Text("SpeakEasy")
                 .font(isPad ? .system(size: 50, weight: .bold) : .largeTitle.bold())
                 .foregroundColor(.blue)

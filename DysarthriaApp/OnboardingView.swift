@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
     @State private var showModelSelection = false
     @ObservedObject var modelManager = ModelManager.shared
     
@@ -20,11 +21,11 @@ struct OnboardingView: View {
             }
             
             VStack(spacing: 15) {
-                Text("Welcome to SpeakEasy")
+                Text("Smart Speak")
                     .font(.largeTitle.bold())
                     .multilineTextAlignment(.center)
                 
-                Text("To enable Smart Speak variations and AI messaging, we need to download an on-device brain.")
+                Text("To enable AI-powered variations and expansion, we need to download an on-device brain (Gemma 4).")
                     .font(.title3)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -33,19 +34,19 @@ struct OnboardingView: View {
             
             Spacer()
             
-            if let selectedModel = modelManager.selectedModel {
+            if let selectedModel = modelManager.selectedModel, selectedModel.localURL != nil {
                 VStack(spacing: 15) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                        Text("Ready: \(selectedModel.name)")
+                        Text("Brain Ready: \(selectedModel.name)")
                             .font(.headline)
                     }
                     
                     Button(action: {
-                        UserDefaults.standard.set(true, forKey: "has_completed_onboarding")
+                        hasCompletedOnboarding = true
                     }) {
-                        Text("Get Started")
+                        Text("Enable Smart Speak")
                             .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -59,7 +60,7 @@ struct OnboardingView: View {
                 Button(action: {
                     showModelSelection = true
                 }) {
-                    Text("Choose an AI Model")
+                    Text("Select & Download AI Brain")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -70,9 +71,11 @@ struct OnboardingView: View {
                 .padding(.horizontal, 40)
             }
             
-            Text("Models are large (1GB+) and will download in the background.")
+            Text("The model is 2.6GB. You can still use basic transcription while it downloads.")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .padding(.horizontal, 40)
+                .multilineTextAlignment(.center)
                 .padding(.bottom, 40)
         }
         .sheet(isPresented: $showModelSelection) {

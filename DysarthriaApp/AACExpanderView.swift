@@ -14,8 +14,34 @@ struct AACExpanderView: View {
     
     let quickChips = ["💧 thirsty", "🍕 hungry", "🚌 bus late", "👨‍⚕️ doc appt", "🔋 low battery", "🚪 open door"]
     
+    @State private var isShowingModelSelection = false
+    
     var body: some View {
         VStack(spacing: isPad ? 30 : 20) {
+            // Header with Model Selection
+            HStack {
+                Text("Smart Speak")
+                    .font(.title2.bold())
+                    .padding(.leading)
+                
+                Spacer()
+                
+                Button(action: {
+                    isShowingModelSelection = true
+                }) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.title3)
+                        .foregroundColor(.purple)
+                }
+                .padding(.trailing)
+            }
+            .padding(.top, 5)
+            .sheet(isPresented: $isShowingModelSelection) {
+                NavigationView {
+                    ModelSelectionView()
+                }
+            }
+
             // Shorthand Display
             VStack(alignment: .leading, spacing: 10) {
                 Text("Shorthand")

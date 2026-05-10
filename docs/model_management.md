@@ -4,11 +4,10 @@ This document details the implementation of the selectable and downloadable mode
 
 ## 1. Features
 
-- **Selectable AI Brains:** Users can choose from multiple available LLMs (e.g., Gemma 2B, Phi-3).
+- **Feature-Gated Onboarding:** AI model setup is exclusively triggered when accessing the "Smart Speak" tab, keeping the core transcription feature lightweight.
 - **On-Device Download:** Models are downloaded directly to the device and stored locally.
-- **Onboarding Flow:** New users are guided through selecting and downloading their first model.
 - **Background Downloads:** Supports large file downloads using `URLSession` background configurations.
-- **Model Switching:** Users can change their "AI Brain" at any time from the settings menu.
+- **Model Management:** Users can manage their "AI Brain" via a purple brain icon located in the Smart Speak tab.
 
 ## 2. Architecture
 
@@ -26,7 +25,10 @@ A dedicated UI for managing models:
 - **Contextual Actions:** Allows users to delete downloaded models to free up space.
 
 ### `OnboardingView.swift`
-A welcoming first-launch experience that ensures the app has a "brain" before the user starts speaking.
+A feature-gate experience shown only in the Smart Speak tab. It ensures the app has an AI "brain" before allowing expansion features, while providing clear feedback that the download is optional for basic transcription users.
+
+### `ContentView.swift`
+Manages the top-level gating logic. It uses a `Group` within the `TabView` to switch between `OnboardingView` and `AACExpanderView` for the Smart Speak tab based on the user's completion status.
 
 ## 3. Integration with AI Services
 

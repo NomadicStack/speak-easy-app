@@ -100,7 +100,7 @@ struct ModelRow: View {
             Spacer()
             
             // Action Buttons
-            if let localURL = model.localURL {
+            if model.localURL != nil {
                 HStack(spacing: 10) {
                     if modelManager.selectedModelId == model.id {
                         Image(systemName: "checkmark.circle.fill")

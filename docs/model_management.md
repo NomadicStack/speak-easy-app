@@ -9,8 +9,16 @@ This document details the implementation of the selectable and downloadable mode
 - **Background Downloads:** Supports large file downloads using `URLSession` background configurations.
 - **Model Management:** Users can manage their "AI Brain" via a purple brain icon located in the Smart Speak tab.
 - **Simulated AI Mode:** A developer toggle in the Model Selection UI that bypasses real LLM loading for testing on resource-constrained environments (e.g., Mac Simulator).
+- **Caregiver Messaging:** Allows users to send AI-expanded sentences directly to a caregiver via SMS.
+- **Smart Contact Routing:** Users can manage a list of contacts (e.g., Mom, Dad). If a contact's name is mentioned in the shorthand input, the app automatically routes the message to that specific person. If no name is found, it falls back to the primary caregiver.
 
 ## 2. Architecture
+
+### `ContactManager.swift`
+A central hub for managing the user's contact list, handling persistence via `UserDefaults`, and providing the logic for name-based routing.
+
+### `MessageService.swift`
+A specialized service that wraps `MFMessageComposeViewController` to handle system-level text messaging safely on iOS devices.
 
 ### `ModelManager.swift`
 The central hub for all model-related operations:

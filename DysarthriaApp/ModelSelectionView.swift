@@ -5,40 +5,16 @@ struct ModelSelectionView: View {
     @ObservedObject var modelManager = ModelManager.shared
     @Environment(\.dismiss) var dismiss
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
+    @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
+    
+    @ObservedObject var contactManager = ContactManager.shared
+    @State private var newContactName: String = ""
+    @State private var newContactNumber: String = ""
     
     var body: some View {
         List {
-            Section(header: Text("Testing & Debug")) {
-                Toggle(isOn: $useSimulation) {
-                    VStack(alignment: .leading) {
-                        Text("Simulate AI Model")
-                            .font(.headline)
-                        Text("Bypasses LLM loading for simulator testing.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            
-            if let error = modelManager.errorMessage {
-                Section {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.red)
-                        Text(error)
-                            .font(.subheadline)
-                            .foregroundColor(.red)
-                        Spacer()
-                        Button("Dismiss") {
-                            modelManager.errorMessage = nil
-                        }
-                        .font(.caption)
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-            
-            Section(header: Text("Available AI Models")) {
+            // 1. AI Model Management (Top Priority)
+            Section(header: Text("AI Brain (Model Management)")) {
                 ForEach(modelManager.availableModels) { model in
                     ModelRow(model: model, modelManager: modelManager)
                         .swipeActions(edge: .trailing) {
@@ -53,17 +29,84 @@ struct ModelSelectionView: View {
                 }
             }
             
-            Section {
-                Text("These models run entirely on your device. No data ever leaves your iPad/iPhone.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            // 2. Caregiver & Contacts (Collapsible)
+            Section(header: Text("Contacts")) {
+                DisclosureGroup("Manage Contacts") {
+                    VStack(alignment: .leading, spacing: 15) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Primary Caregiver (Fallback)")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            TextField("Phone Number", text: $caregiverNumber)
+                                .keyboardType(.phonePad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        Divider()
+                        
+                        Text("Other Contacts (Mention in shorthand)")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        ForEach(contactManager.contacts) { contact in
+                            HStack {
+                                Text(contact.name).font(.headline)
+                                Spacer()
+                                Text(contact.phoneNumber).font(.subheadline).foregroundColor(.secondary)
+                            }
+                        }
+                        .onDelete { indexSet in
+                            contactManager.deleteContact(at: indexSet)
+                        }
+                        
+                        VStack(spacing: 8) {
+                            HStack {
+                                TextField("Name", text: $newContactName)
+                                TextField("Number", text: $newContactNumber)
+                                    .keyboardType(.phonePad)
+                            }
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            
+                            Button(action: {
+                                guard !newContactName.isEmpty && !newContactNumber.isEmpty else { return }
+                                contactManager.addContact(name: newContactName, number: newContactNumber)
+                                newContactName = ""
+                                newContactNumber = ""
+                            }) {
+                                Label("Add", systemImage: "plus.circle.fill")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(8)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+            
+            // 3. Testing & Debug (Collapsible)
+            Section(header: Text("Advanced")) {
+                DisclosureGroup("Developer Settings") {
+                    Toggle(isOn: $useSimulation) {
+                        VStack(alignment: .leading) {
+                            Text("Simulate AI Model")
+                                .font(.headline)
+                            Text("Bypasses LLM loading for testing.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
             
             Section {
                 Button(role: .destructive, action: {
                     modelManager.clearAllModels()
                 }) {
-                    Label("Clear All Models & Cache", systemImage: "trash.fill")
+                    Label("Clear Cache", systemImage: "trash.fill")
+                        .foregroundColor(.red)
                 }
             }
         }

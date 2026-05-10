@@ -134,6 +134,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		972463902FA8105900E244EE /* Re-sign Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -149,8 +150,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "find \"${CODESIGNING_FOLDER_PATH}/Frameworks\" -name \"*.dylib\" -o -name \"*.framework\" | xargs codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --timestamp=none --generate-entitlement-der\n";
-		                        alwaysOutOfDate = 1;
-                };
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */

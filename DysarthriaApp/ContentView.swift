@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var aacVM = AACViewModel()
     @State private var selectedTab = 0
     @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
+    @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     
     init() {
         // Make tab bar text larger for accessibility
@@ -40,7 +41,7 @@ struct ContentView: View {
                     TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
                 } else {
                     Group {
-                        if !hasCompletedOnboarding {
+                        if !hasCompletedOnboarding && !useSimulation {
                             OnboardingView()
                         } else {
                             AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)

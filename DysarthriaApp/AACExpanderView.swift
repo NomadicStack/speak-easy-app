@@ -4,6 +4,7 @@ struct AACExpanderView: View {
     @ObservedObject var viewModel: AACViewModel
     @ObservedObject var transcriptionVM: TranscriptionViewModel
     @ObservedObject var audioRecorder: AudioRecorder
+    @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.verticalSizeClass) var verticalSizeClass
@@ -85,10 +86,14 @@ struct AACExpanderView: View {
             HStack(spacing: 12) {
                 ForEach(quickChips, id: \.self) { chip in
                     Button(action: {
+                        // Extract text without emoji (assumes "EMOJI space text")
+                        let components = chip.components(separatedBy: " ")
+                        let chipText = components.count > 1 ? components.dropFirst().joined(separator: " ") : chip
+                        
                         if viewModel.shorthandInput.isEmpty {
-                            viewModel.shorthandInput = chip.components(separatedBy: " ").last ?? chip
+                            viewModel.shorthandInput = chipText
                         } else {
-                            viewModel.shorthandInput += " " + (chip.components(separatedBy: " ").last ?? chip)
+                            viewModel.shorthandInput += " " + chipText
                         }
                         Task { await viewModel.expand() }
                     }) {
@@ -132,32 +137,53 @@ struct AACExpanderView: View {
     }
     
     private func optionButton(_ option: String) -> some View {
-        Button(action: {
-            viewModel.speak(option)
-        }) {
-            HStack(spacing: 20) {
-                Text(option)
-                    .font(isPad ? .system(size: 28, weight: .semibold) : .title3.bold())
-                    .multilineTextAlignment(.leading)
-                    .foregroundColor(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                
-                Spacer()
-                
-                Image(systemName: "speaker.wave.2.fill")
-                    .font(isPad ? .title : .headline)
-                    .foregroundColor(.purple)
+        HStack(spacing: 0) {
+            // Main text area triggers speech
+            Button(action: {
+                viewModel.speak(option)
+            }) {
+                HStack(spacing: 20) {
+                    Text(option)
+                        .font(isPad ? .system(size: 28, weight: .semibold) : .title3.bold())
+                        .multilineTextAlignment(.leading)
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    Spacer()
+                }
+                .padding(isPad ? 35 : 25)
+                .frame(maxWidth: .infinity)
             }
-            .padding(isPad ? 35 : 25)
-            .frame(maxWidth: .infinity)
-            .background(Color.white)
-            .cornerRadius(20)
-            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.purple.opacity(0.1), lineWidth: 1)
-            )
+            
+            // Action buttons on the right
+            HStack(spacing: isPad ? 25 : 15) {
+                // Speak Button (Visual indicator)
+                Button(action: { viewModel.speak(option) }) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(isPad ? .system(size: 35) : .title2)
+                        .foregroundColor(.purple)
+                }
+                
+                // Message Button
+                Button(action: {
+                    // Smart recipient selection
+                    let recipient = ContactManager.shared.findRecipient(for: viewModel.shorthandInput) ?? caregiverNumber
+                    MessageService.shared.sendMessage(text: option, recipient: recipient)
+                }) {
+                    Image(systemName: "message.fill")
+                        .font(isPad ? .system(size: 35) : .title2)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.trailing, isPad ? 35 : 25)
         }
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.purple.opacity(0.1), lineWidth: 1)
+        )
     }
     
     private var loadingView: some View {

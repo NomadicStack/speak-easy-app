@@ -1,52 +1,36 @@
 # Implementation Report: Smart Speak (AAC Expander)
 
-This document summarizes the technical implementation of the **Smart Speak** feature within the DysarthriaApp.
-
 ## 1. Architecture Overview
-
-The feature follows a **Model-View-ViewModel-Service (MVVM-S)** architecture to ensure a clean separation of concerns and easy future integration with real LiteRT/Gemma models.
+The feature follows a **Model-View-ViewModel-Service (MVVM-S)** architecture, unified under the **SpeakEasy** brand.
 
 ### Components
-- **`AACExpanderView.swift` (View):** The user interface for the "Smart Speak" tab, optimized for voice-first interaction.
-- **`AACViewModel.swift` (ViewModel):** Manages the state, coordinates expansion logic, and enforces the **strict 3-sentence limit**.
-- **`GemmaService.swift` (Service):** Wraps the LLM inference logic. Currently uses a simulation layer but is structured for LiteRT (MediaPipe).
-- **`TextToSpeechService.swift` (Service):** Manages audio output using Apple's `AVSpeechSynthesizer` with a preference for high-quality voices (e.g., "Zoe").
+- **`AACExpanderView`**: High-accessibility UI with massive touch targets.
+- **`ContactManager`**: Smart routing service for name-based messaging.
+- **`GemmaService`**: LiteRT wrapper with a manual `nil` backend patch for Gemma 4 compatibility.
+- **`MessageService`**: Unified system SMS integration.
 
 ## 2. Key Features & Workflows
 
-### Voice-First Automatic Expansion
-The workflow is streamlined to minimize physical effort:
-1. **Record:** User taps the Microphone button and speaks shorthand.
-2. **Auto-Transcribe:** On stop, the fine-tuned Whisper model transcribes the audio.
-3. **Auto-Expand:** The system immediately triggers the AI expansion once transcription is complete. No extra button tap is required.
-4. **Strict Output:** The system always provides **exactly 3 variations** as natural sentence variations.
+### Smart Contact Routing
+Automatically routes messages based on shorthand context:
+1. User speaks: *"late Dad"*
+2. `ContactManager` detects "Dad".
+3. Messaging icon defaults to Dad's saved number.
 
-### Iterative Refinement & Duplication Protection
-Users can refine their intent by recording additional keywords. 
-- **Duplication Fix:** To prevent the previous transcription from repeating when appending, the app explicitly clears the transcription engine's memory before each new recording in the Smart Speak tab.
-- **Clean Appending:** New keywords are cleanly appended to the existing shorthand (e.g., "thirsty" + "water" = "thirsty water") before regeneration.
+### Custom Navigation (Accessibility)
+Replaced standard `TabView` with a custom **Large-Scale TabBar**:
+- 24pt/32pt font and icon sizes.
+- Oversized hit targets for users with motor tremors.
 
-### High-Contrast UI
-- **Refined Font Sizes:** Text is displayed in a balanced, high-contrast style (Title/Headline for shorthand, Title3/Body for variations) to ensure accessibility without overwhelming the screen.
-- **Integrated TTS:** Every card is tappable for immediate text-to-speech output.
+## 3. Technical Optimizations
 
-## 3. Integration with Transcription Engine
+### Gemma 4 Signature Patch
+The `.litertlm` bundle for Gemma 4 contains 3 vision signatures which causes a crash in LiteRT-LM. 
+**Fix:** Patched `LiteRTLMEngine.swift` to pass `nil` to vision/audio backends, loading only the LLM text core. (See `docs/GEMMA4_PATCH_GUIDE.md`).
 
-The feature leverages the **shared fine-tuned Whisper model** via `TranscriptionViewModel`.
+### Simulation Layer
+A **Simulated AI Mode** bypasses real LLM loading for developer testing on Mac Simulators, providing mock 3-sentence expansions with 1.5s latency.
 
-- **Data Orchestration:** `ContentView` monitors the `isTranscribing` state. When a transcription finishes while the user is in the "Smart Speak" tab, it automatically captures the result and triggers the `AACViewModel.expand()` process.
-- **State Isolation:** While the transcription model is shared, its *text state* is isolated during recording in the Smart Speak tab to ensure "incremental" appending works correctly.
-
-## 4. Current State: Simulation Logic
-
-A **Simulation Layer** in `GemmaService` allows for immediate testing:
-- **Keyword Matching:** Recognizes patterns like "water", "bus", "thirsty", "food", etc.
-- **Structured Response:** Returns valid variations that match the requested conversational tone and list format.
-- **Latency Simulation:** Mimics the processing time of a real LLM to validate loading UI.
-
-## 5. Future LLM Integration (LiteRT / MediaPipe)
-
-The implementation is designed for a drop-in transition to real AI:
-1. **Dependency:** Add `MediaPipeTasksGenAI`.
-2. **Implementation:** Update `GemmaService.loadModel()` and replace the simulation with a real inference call using the pre-configured system prompt.
-3. **Resource Management:** `unloadModel()` is already called after every expansion to free up GPU memory.
+## 4. Resource Management
+- **Gated Onboarding:** The 2.6GB Gemma 4 download is now exclusively gated to the Smart Speak tab, keeping the Transcribe tab lightweight.
+- **Memory Entitlement:** Uses `com.apple.developer.kernel.increased-memory-limit` for stable performance on iPad Pro M4.

@@ -8,6 +8,21 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
     
+    init() {
+        // Make tab bar text larger for accessibility
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        
+        let font = UIFont.systemFont(ofSize: 18, weight: .bold)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = attributes
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = attributes
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+    
     // Detect device size class for responsive design
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.verticalSizeClass) var verticalSizeClass
@@ -18,25 +33,60 @@ struct ContentView: View {
     }
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
-                .tabItem {
-                    Label("Transcribe", systemImage: "waveform")
-                }
-                .tag(0)
-            
+        ZStack(alignment: .bottom) {
+            // Main Content Area
             Group {
-                if !hasCompletedOnboarding {
-                    OnboardingView()
+                if selectedTab == 0 {
+                    TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
                 } else {
-                    AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)
+                    Group {
+                        if !hasCompletedOnboarding {
+                            OnboardingView()
+                        } else {
+                            AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)
+                        }
+                    }
                 }
             }
-            .tabItem {
-                Label("Smart Speak", systemImage: "sparkles")
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, isPad ? 110 : 90) // Leave space for custom tab bar
+            
+            // Custom Large Tab Bar
+            VStack(spacing: 0) {
+                Divider()
+                HStack(spacing: 0) {
+                    // Transcribe Tab
+                    Button(action: { selectedTab = 0 }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "waveform")
+                                .font(.system(size: isPad ? 32 : 24, weight: .bold))
+                            Text("Transcribe")
+                                .font(.system(size: isPad ? 24 : 18, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, isPad ? 20 : 15)
+                        .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
+                        .foregroundColor(selectedTab == 0 ? .blue : .secondary)
+                    }
+                    
+                    // Smart Speak Tab
+                    Button(action: { selectedTab = 1 }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: isPad ? 32 : 24, weight: .bold))
+                            Text("Smart Speak")
+                                .font(.system(size: isPad ? 24 : 18, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, isPad ? 20 : 15)
+                        .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
+                        .foregroundColor(selectedTab == 1 ? .purple : .secondary)
+                    }
+                }
+                .background(.ultraThinMaterial)
             }
-            .tag(1)
         }
+        .ignoresSafeArea(edges: .bottom)
         .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
                 // If transcription just finished and we're on the expander tab, trigger expansion
                 if !isTranscribing && selectedTab == 1 {
@@ -78,11 +128,16 @@ struct TranscriptionView: View {
 
     var body: some View {
         VStack(spacing: isPad ? 40 : 30) {
-            Text("SpeakEasy")
-                .font(isPad ? .system(size: 50, weight: .bold) : .largeTitle.bold())
-                .foregroundColor(.blue)
-                .multilineTextAlignment(.center)
-                .padding(.top, isPad ? 60 : 40)
+            // Header with Branding
+            HStack {
+                Text("SpeakEasy")
+                    .font(isPad ? .title.bold() : .headline.bold())
+                    .foregroundColor(.blue)
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.top, isPad ? 20 : 10)
             
             if !transcriptionVM.isModelLoaded {
                 VStack(spacing: 15) {

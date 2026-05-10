@@ -1,13 +1,20 @@
 import Foundation
 import Combine
+import SwiftUI
 import LiteRTLMSwift
 
 class GemmaService: ObservableObject {
     @Published var isModelLoaded: Bool = false
+    @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     
     private var engine: LiteRTLMEngine?
     
     func loadModel() async throws {
+        if useSimulation {
+            await MainActor.run { isModelLoaded = true }
+            return
+        }
+        
         guard let modelInfo = ModelManager.shared.selectedModel,
               let localURL = modelInfo.localURL else {
             throw NSError(domain: "GemmaService", code: 1, userInfo: [NSLocalizedDescriptionKey: "No model selected or downloaded"])
@@ -41,6 +48,16 @@ class GemmaService: ObservableObject {
     }
     
     func expandAAC(shorthand: String) async throws -> String {
+        if useSimulation {
+            // Mock AI behavior for simulator testing
+            try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5s delay
+            return """
+            1. I would like to say: \(shorthand).
+            2. Can you help me with \(shorthand)?
+            3. \(shorthand.capitalized) is what I am thinking about.
+            """
+        }
+        
         guard let engine = engine else {
             throw NSError(domain: "GemmaService", code: 2, userInfo: [NSLocalizedDescriptionKey: "No engine initialized"])
         }

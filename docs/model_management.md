@@ -8,6 +8,7 @@ This document details the implementation of the selectable and downloadable mode
 - **On-Device Download:** Models are downloaded directly to the device and stored locally.
 - **Background Downloads:** Supports large file downloads using `URLSession` background configurations.
 - **Model Management:** Users can manage their "AI Brain" via a purple brain icon located in the Smart Speak tab.
+- **Simulated AI Mode:** A developer toggle in the Model Selection UI that bypasses real LLM loading for testing on resource-constrained environments (e.g., Mac Simulator).
 
 ## 2. Architecture
 
@@ -50,3 +51,15 @@ The service has been updated to be dynamic:
 1. **Add Library:** Add the `LiteRTLM-Swift` Swift Package.
 2. **Real URLs:** Update the placeholder URLs in `ModelManager` with real direct-download links for `.litertlm` models.
 3. **Inference Logic:** The `GemmaService` is fully integrated with `LiteRTLMEngine`.
+
+## 4. Testing & Simulation
+
+### Simulated AI Mode
+To facilitate testing on environments that cannot support a 2.6GB local LLM (like the iPad Simulator), a **Simulated AI Mode** is available:
+
+- **Toggle:** Found in the **Model Selection (Brain Icon)** menu under "Testing & Debug".
+- **Behavior:** Bypasses `LiteRTLMEngine.load()` and `generate()`.
+- **Logic:** 
+  - Simulates a 1.5-second processing delay.
+  - Returns 3 mock expansion sentences using the input shorthand.
+  - Allows full end-to-end testing of the UI, Voice-to-Text flow, and TTS (Text-to-Speech) without real AI hardware requirements.

@@ -4,9 +4,22 @@ import UniformTypeIdentifiers
 struct ModelSelectionView: View {
     @ObservedObject var modelManager = ModelManager.shared
     @Environment(\.dismiss) var dismiss
+    @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     
     var body: some View {
         List {
+            Section(header: Text("Testing & Debug")) {
+                Toggle(isOn: $useSimulation) {
+                    VStack(alignment: .leading) {
+                        Text("Simulate AI Model")
+                            .font(.headline)
+                        Text("Bypasses LLM loading for simulator testing.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
             if let error = modelManager.errorMessage {
                 Section {
                     HStack {

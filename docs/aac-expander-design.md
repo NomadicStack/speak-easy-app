@@ -8,14 +8,14 @@ For individuals with dysarthria, the physical effort required to speak or type f
 
 ## Feature Overview
 
-The user speaks a highly abbreviated string of keywords (shorthand) into the SpeakEasy app. The fine-tuned WhisperKit transcribes this audio into raw text. By tapping **"Expand with AI"**, the app leverages **Gemma 4 2B (4-bit quantized)** locally via **MLX Swift** to generate 3 natural sentence variations based on the transcribed input. 
+The user speaks a highly abbreviated string of keywords (shorthand) into the SpeakEasy app. The fine-tuned WhisperKit transcribes this audio into raw text. By tapping **"Expand with AI"**, the app leverages **Gemma 4 2B (4-bit quantized)** locally via **LiteRTLM-Swift** to generate 3 natural sentence variations based on the transcribed input. 
 
 **Iterative Refinement:** If the generated variations aren't quite right, the user can press record again and speak additional context. The new transcribed text is appended to the existing shorthand, and Gemma regenerates 3 new, refined variations. Once satisfied, the user selects the best option to be spoken aloud by the device's TTS engine.
 
 ```text
 ┌──────────────┐      ──────────────┐     ┌──────────────────┐     ┌──────────────┐
 │  Spoken      │────▶│  WhisperKit  │────▶│  Gemma 4 2B      │────▶│  3 Sentence  │
-│  Shorthand   │     │(Transcription)│     │  (MLX / GPU)     │     │  Variations  │
+│  Shorthand   │     │(Transcription)│     │  (LiteRT / GPU)  │     │  Variations  │
 └──────────────┘      ──────┬───────┘     └────────┬─────────┘     └──────┬───────┘
                             │                      │                      │
                             │                      │                      ▼
@@ -33,11 +33,11 @@ The user speaks a highly abbreviated string of keywords (shorthand) into the Spe
 
 ---
 
-## On-Device Strategy: MLX Swift
+## On-Device Strategy: LiteRTLM-Swift
 
-This feature shares the same underlying MLX Swift architecture as the Message Composer. 
+This feature shares the same underlying LiteRTLM-Swift architecture as the Message Composer. 
 
-### Why MLX and On-Device?
+### Why LiteRT and On-Device?
 - **Zero Latency Requirement:** In real-world conversations, users cannot wait for cloud API round-trips to communicate. On-device generation ensures the fastest possible response time.
 - **Privacy:** Conversational intents and personal needs remain entirely on the device.
 - **Offline Reliability:** Critical for daily communication outside of Wi-Fi zones or in hospitals with poor connectivity.
@@ -54,7 +54,7 @@ DysarthriaApp/
 ├── AACViewModel.swift                // NEW — State management for the expander
 ├── AACExpanderView.swift             // NEW — Main UI for input and expanded options
 ├── TextToSpeechService.swift         // NEW — AVSpeechSynthesizer wrapper
-├── GemmaService.swift                // SHARED — Existing MLX Swift LLM wrapper
+├── GemmaService.swift                // SHARED — Existing LiteRT LLM wrapper
 └── ...
 ```
 

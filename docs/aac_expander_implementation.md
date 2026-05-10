@@ -4,12 +4,12 @@ This document summarizes the technical implementation of the **Smart Speak** fea
 
 ## 1. Architecture Overview
 
-The feature follows a **Model-View-ViewModel-Service (MVVM-S)** architecture to ensure a clean separation of concerns and easy future integration with real MLX/Gemma models.
+The feature follows a **Model-View-ViewModel-Service (MVVM-S)** architecture to ensure a clean separation of concerns and easy future integration with real LiteRT/Gemma models.
 
 ### Components
 - **`AACExpanderView.swift` (View):** The user interface for the "Smart Speak" tab, optimized for voice-first interaction.
 - **`AACViewModel.swift` (ViewModel):** Manages the state, coordinates expansion logic, and enforces the **strict 3-sentence limit**.
-- **`GemmaService.swift` (Service):** Wraps the LLM inference logic. Currently uses a simulation layer but is structured for MLX Swift.
+- **`GemmaService.swift` (Service):** Wraps the LLM inference logic. Currently uses a simulation layer but is structured for LiteRT (MediaPipe).
 - **`TextToSpeechService.swift` (Service):** Manages audio output using Apple's `AVSpeechSynthesizer` with a preference for high-quality voices (e.g., "Zoe").
 
 ## 2. Key Features & Workflows
@@ -44,9 +44,9 @@ A **Simulation Layer** in `GemmaService` allows for immediate testing:
 - **Structured Response:** Returns valid variations that match the requested conversational tone and list format.
 - **Latency Simulation:** Mimics the processing time of a real LLM to validate loading UI.
 
-## 5. Future LLM Integration (MLX Swift)
+## 5. Future LLM Integration (LiteRT / MediaPipe)
 
 The implementation is designed for a drop-in transition to real AI:
-1. **Dependency:** Add `MLX Swift`.
+1. **Dependency:** Add `MediaPipeTasksGenAI`.
 2. **Implementation:** Update `GemmaService.loadModel()` and replace the simulation with a real inference call using the pre-configured system prompt.
 3. **Resource Management:** `unloadModel()` is already called after every expansion to free up GPU memory.

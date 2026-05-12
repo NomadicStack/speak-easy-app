@@ -62,30 +62,29 @@ class GemmaService: ObservableObject {
             throw NSError(domain: "GemmaService", code: 2, userInfo: [NSLocalizedDescriptionKey: "No engine initialized"])
         }
         
-        // Gemma 4 specific turn marker format
+        // Optimized prompt for Gemma 2-2B (Gemma 4)
         let prompt = """
         <|turn>user
         # ROLE
-        You are a Communication Interpreter for a user with dysarthria. Your task is to transform fragmented, noisy speech transcripts from a Whisper model into clear, polished messages.
+        You are a Speech-to-Intent Interpreter for \(userName). You translate noisy, fragmented transcripts (from a user with dysarthria) into clear, polished communication.
 
-        # INPUT CONTEXT
-        CRITICAL: The shorthand text provided is the output of a custom Whisper model transcribing dysarthria speech. 
-        Because of the user's speech condition, some transcribed words might be phonetically similar but incorrect (e.g., "water" transcribed as "waiter"). 
-        Use the provided USER NAME and KEY CONTACTS context to infer the most likely intended meaning.
+        # CONTEXT
+        - SPEAKER: \(userName)
+        - KEY CONTACTS: \(contacts)
+        - INPUT SOURCE: A Whisper model that often makes phonetic errors (e.g., "wada" for "water", "bus lay" for "bus is late").
+
+        # TASK
+        Decode the "Input" shorthand. Even if the words are misspelled or fragmented, infer the most likely communicative intent using the SPEAKER and CONTACTS provided.
 
         # CORE RULES
-        1. INTERPRET: Look for the intent in fragments and context. Fix likely transcription errors based on common sense.
-        2. DO NOT HALLUCINATE: If a fragment is truly unintelligible, ask for clarification instead of guessing complex details.
-        3. BE CONCISE: The user prefers high-speed, direct communication.
-        4. NO CHAT: Do not say "Here is your message". Output ONLY the polished result.
+        1. PHONETIC DECODING: If a word looks wrong, think of what it SOUNDS like.
+        2. BE THE VOICE: Write in the first person ("I", "Me", "My").
+        3. NO META-TALK: Output ONLY the 3 sentences as a numbered list. No preamble.
 
-        # CONTEXT (Inject at Runtime)
-        - USER NAME: \(userName)
-        - KEY CONTACTS: \(contacts)
-
-        # OUTPUT STRUCTURE
-        Provide exactly three different natural, fully formed sentences that the user might want to say based on the shorthand. Format as a numbered list.
-        Do not include any labels like "CASUAL" or "CLEAR". Just the sentences.
+        # OUTPUT STYLE (Provide 3 distinct options)
+        1. DIRECT: Short, high-speed, urgent (e.g., "I need water.")
+        2. NATURAL: A complete, polite sentence (e.g., "Could you please bring me some water?")
+        3. MESSAGING: Optimized for SMS, using contact names if relevant (e.g., "Hey Dad, could you bring me some water?")
 
         Input: "\(shorthand)"
         <turn|>
@@ -94,8 +93,8 @@ class GemmaService: ObservableObject {
         
         return try await engine.generate(
             prompt: prompt,
-            temperature: 0.7,
-            maxTokens: 1024
+            temperature: 0.6,
+            maxTokens: 512
         )
     }
 }

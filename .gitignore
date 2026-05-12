@@ -76,6 +76,7 @@ Temporary Items
 DysarthriaApp/Models/
 model/
 venv312/
+model_backups/
 
 # Others
 *.swp

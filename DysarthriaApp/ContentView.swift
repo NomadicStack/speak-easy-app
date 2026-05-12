@@ -168,21 +168,6 @@ struct TranscriptionView: View {
                         
                         Divider()
                         
-                        // Context Section
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("AI Hint (Context)")
-                                .font(.headline)
-                            Text("This helps the AI understand slurred speech better.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            TextField("Context (e.g. key words)", text: $transcriptionVM.initialPrompt)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .font(isPad ? .title3 : .body)
-                        }
-                        
-                        Divider()
-                        
                         // Report Section
                         if transcriptionVM.totalCorrections > 0 {
                             Button(action: {

@@ -13,7 +13,9 @@ class MessageService: NSObject, MFMessageComposeViewControllerDelegate {
         
         let composeVC = MFMessageComposeViewController()
         composeVC.messageComposeDelegate = self
-        composeVC.recipients = [recipient]
+        if !recipient.isEmpty {
+            composeVC.recipients = [recipient]
+        }
         composeVC.body = text
         
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,

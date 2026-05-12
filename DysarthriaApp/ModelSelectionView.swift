@@ -6,6 +6,7 @@ struct ModelSelectionView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
+    @AppStorage("user_name") var userName: String = "User"
     
     @ObservedObject var contactManager = ContactManager.shared
     @State private var newContactName: String = ""
@@ -88,16 +89,31 @@ struct ModelSelectionView: View {
             // 3. Testing & Debug (Collapsible)
             Section(header: Text("Advanced")) {
                 DisclosureGroup("Developer Settings") {
-                    Toggle(isOn: $useSimulation) {
-                        VStack(alignment: .leading) {
-                            Text("Simulate AI Model")
-                                .font(.headline)
-                            Text("Bypasses LLM loading for testing.")
-                                .font(.caption)
+                    VStack(alignment: .leading, spacing: 20) {
+                        // User Profile
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("User Profile")
+                                .font(.caption.bold())
                                 .foregroundColor(.secondary)
+                            
+                            TextField("User Name", text: $userName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        Divider()
+                        
+                        // Simulation Toggle
+                        Toggle(isOn: $useSimulation) {
+                            VStack(alignment: .leading) {
+                                Text("Simulate AI Model")
+                                    .font(.headline)
+                                Text("Bypasses LLM loading for testing.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 10)
                 }
             }
             

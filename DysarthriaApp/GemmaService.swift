@@ -47,14 +47,14 @@ class GemmaService: ObservableObject {
         isModelLoaded = false
     }
     
-    func expandAAC(shorthand: String) async throws -> String {
+    func expandAAC(shorthand: String, userName: String, contacts: String) async throws -> String {
         if useSimulation {
             // Mock AI behavior for simulator testing
             try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5s delay
             return """
-            1. I would like to say: \(shorthand).
-            2. Can you help me with \(shorthand)?
-            3. \(shorthand.capitalized) is what I am thinking about.
+            1. Could you help me with \(shorthand)?
+            2. Could you please bring me \(shorthand)?
+            3. I would like to say \(shorthand).
             """
         }
         
@@ -65,17 +65,24 @@ class GemmaService: ObservableObject {
         // Gemma 4 specific turn marker format
         let prompt = """
         <|turn>user
-        You are an Augmentative and Alternative Communication (AAC) assistant.
-        A user has inputted a shorthand phrase. Expand this shorthand into three
-        different natural, fully formed sentences that the user might want to say aloud.
-        
-        Rules:
-        - Provide exactly 3 options.
-        - Format as a numbered list (1., 2., 3.).
-        - Do not include any conversational filler.
-        - Make the tone polite and conversational.
+        # ROLE
+        You are a Communication Interpreter for a user with dysarthria. Your task is to transform fragmented, noisy speech transcripts from a Whisper model into clear, polished messages.
 
-        Shorthand: \(shorthand)
+        # CORE RULES
+        1. INTERPRET: Look for the intent in fragments (e.g., "Wtr" = Water, "Mom... late" = Message to Mom about timing).
+        2. DO NOT HALLUCINATE: If a fragment is truly unintelligible, ask for clarification instead of guessing a complex medical or personal detail.
+        3. BE CONCISE: The user prefers high-speed, direct communication.
+        4. NO CHAT: Do not say "Here is your message" or "I have polished this for you." Output ONLY the polished result.
+
+        # CONTEXT (Inject at Runtime)
+        - USER NAME: \(userName)
+        - KEY CONTACTS: \(contacts)
+
+        # OUTPUT STRUCTURE
+        Provide exactly three different natural, fully formed sentences that the user might want to say based on the shorthand. Format as a numbered list.
+        Do not include any labels like "CASUAL" or "CLEAR". Just the sentences.
+
+        Input: "\(shorthand)"
         <turn|>
         <|turn>model
         """

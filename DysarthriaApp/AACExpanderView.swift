@@ -167,7 +167,10 @@ struct AACExpanderView: View {
                 // Message Button
                 Button(action: {
                     // Smart recipient selection
-                    let recipient = ContactManager.shared.findRecipient(for: viewModel.shorthandInput) ?? caregiverNumber
+                    let foundRecipient = ContactManager.shared.findRecipient(for: viewModel.shorthandInput)
+                    // If no contact found, pass an empty string (or empty list) instead of falling back to caregiverNumber
+                    // to allow manual input.
+                    let recipient = foundRecipient ?? ""
                     MessageService.shared.sendMessage(text: option, recipient: recipient)
                 }) {
                     Image(systemName: "message.fill")

@@ -9,6 +9,8 @@ class AACViewModel: ObservableObject {
     @Published var generatedOptions: [String] = []
     @Published var errorMessage: String?
     
+    @AppStorage("user_name") var userName: String = "User"
+    
     private let ttsService = TextToSpeechService()
     private let gemmaService = GemmaService()
     
@@ -18,9 +20,15 @@ class AACViewModel: ObservableObject {
         isGenerating = true
         errorMessage = nil
         
+        let contacts = ContactManager.shared.contacts.map { "\($0.name): \($0.phoneNumber)" }.joined(separator: ", ")
+        
         do {
             try await gemmaService.loadModel()
-            let rawResult = try await gemmaService.expandAAC(shorthand: shorthandInput)
+            let rawResult = try await gemmaService.expandAAC(
+                shorthand: shorthandInput,
+                userName: userName,
+                contacts: contacts.isEmpty ? "None" : contacts
+            )
             self.generatedOptions = parseOptions(rawResult)
             gemmaService.unloadModel()
         } catch {
@@ -32,20 +40,26 @@ class AACViewModel: ObservableObject {
     
     private func parseOptions(_ llmOutput: String) -> [String] {
         let lines = llmOutput.components(separatedBy: .newlines)
-        let parsed: [String] = lines.compactMap { line in
+        var parsed: [String] = []
+        
+        for line in lines {
             let cleaned = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if cleaned.isEmpty { return nil }
+            if cleaned.isEmpty { continue }
             
             // Remove numbered list markers like "1. ", "2. ", etc.
             if let range = cleaned.range(of: #"^\d+\.\s*"#, options: .regularExpression) {
-                return String(cleaned[range.upperBound...])
+                let text = String(cleaned[range.upperBound...]).trimmingCharacters(in: .init(charactersIn: " \""))
+                parsed.append(text)
+            } else if !cleaned.hasPrefix("<|") && !cleaned.hasPrefix("<turn") {
+                // Fallback for lines that aren't markers or numbered but contain text
+                parsed.append(cleaned)
             }
-            return cleaned
         }
         
-        // Strictly limit to 3 sentences as requested
+        // Return up to 3 options
         return Array(parsed.prefix(3))
     }
+    
     func appendContextAndRegenerate(newTranscription: String) {
         guard !newTranscription.isEmpty else { return }
         

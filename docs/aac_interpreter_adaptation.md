@@ -8,11 +8,16 @@ This document details the transition from a generic AAC expander to a specialize
 The app acted as a generic "Augmentative and Alternative Communication (AAC) assistant" that expanded shorthand into three polite, conversational sentences.
 
 ### Adapted Role (Current)
-The model is now defined as a **Communication Interpreter**. Its primary task is to transform fragmented, noisy speech transcripts from a Whisper model into clear, polished messages while adhering to specific core rules:
-- **Interpret**: Actively look for intent in fragments.
-- **Do Not Hallucinate**: Ask for clarification if input is truly unintelligible.
-- **Be Concise**: Prioritize high-speed, direct communication.
-- **No Chat**: Output only the polished results without conversational filler.
+The model is now defined as a **Communication Interpreter**. Its primary task is to transform fragmented, noisy speech transcripts from a Whisper model into clear, polished messages.
+
+**Transcription Awareness:**
+The prompt explicitly informs the model that the input is from a Whisper model transcribing dysarthria speech. It is instructed to anticipate phonetically similar but incorrect words (e.g., "water" vs "waiter") and use the provided context to infer the correct intent.
+
+### Core Rules:
+1. **Interpret**: Actively look for intent in fragments and fix likely transcription errors.
+2. **Do Not Hallucinate**: Ask for clarification if input is truly unintelligible.
+3. **Be Concise**: Prioritize high-speed, direct communication.
+4. **No Chat**: Output only the polished results without conversational filler.
 
 ## 2. Output Structure
 

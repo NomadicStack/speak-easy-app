@@ -185,7 +185,9 @@ class TranscriptionViewModel: ObservableObject {
                 var options = DecodingOptions()
                 options.temperature = 0.0
                 options.temperatureIncrementOnFallback = 0.2
-                options.temperatureFallbackCount = 2
+                options.temperatureFallbackCount = 0 // Disable fallbacks to stick with the best guess
+                options.logProbThreshold = nil // Do not reject based on confidence
+                options.firstTokenLogProbThreshold = nil // Do not reject based on the first word
                 options.suppressBlank = false
                 options.language = "en"
                 options.verbose = false

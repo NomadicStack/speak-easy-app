@@ -76,6 +76,27 @@ The tool generates a hidden folder `._model` containing:
     )
     ```
 
+## 🔄 Testing & Swapping Models
+
+To compare different model versions, you can swap the contents of the `CustomDysarthriaModel` folder.
+
+### 1. Create a Backup
+Always backup the current model before replacing it.
+```bash
+mkdir -p model_backups
+cp -r DysarthriaApp/Models/CustomDysarthriaModel model_backups/CustomDysarthriaModel_v1
+```
+
+### 2. Swap Models
+To switch to a different version:
+```bash
+# Clear active model
+rm -rf DysarthriaApp/Models/CustomDysarthriaModel/*
+
+# Restore from backup
+cp -r model_backups/CustomDysarthriaModel_v2/* DysarthriaApp/Models/CustomDysarthriaModel/
+```
+
 ## 🧹 Cleanup & Optimization
 
 ### Avoiding Redundant Copies

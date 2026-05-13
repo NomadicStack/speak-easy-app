@@ -4,7 +4,25 @@ import MessageUI
 struct ContentView: View {
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var transcriptionVM = TranscriptionViewModel()
-    @State private var isShowingMailView = false
+    @StateObject private var aacVM = AACViewModel()
+    @State private var selectedTab = 0
+    @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
+    @AppStorage("use_ai_simulation") var useSimulation: Bool = false
+    
+    init() {
+        // Make tab bar text larger for accessibility
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        
+        let font = UIFont.systemFont(ofSize: 18, weight: .bold)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = attributes
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = attributes
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
     
     // Detect device size class for responsive design
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -16,12 +34,111 @@ struct ContentView: View {
     }
     
     var body: some View {
+        ZStack(alignment: .bottom) {
+            // Main Content Area
+            Group {
+                if selectedTab == 0 {
+                    TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
+                } else {
+                    Group {
+                        if !hasCompletedOnboarding && !useSimulation {
+                            OnboardingView()
+                        } else {
+                            AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, isPad ? 110 : 90) // Leave space for custom tab bar
+            
+            // Custom Large Tab Bar
+            VStack(spacing: 0) {
+                Divider()
+                HStack(spacing: 0) {
+                    // Transcribe Tab
+                    Button(action: { selectedTab = 0 }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "waveform")
+                                .font(.system(size: isPad ? 32 : 24, weight: .bold))
+                            Text("Transcribe")
+                                .font(.system(size: isPad ? 24 : 18, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, isPad ? 20 : 15)
+                        .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
+                        .foregroundColor(selectedTab == 0 ? .blue : .secondary)
+                    }
+                    
+                    // Smart Speak Tab
+                    Button(action: { selectedTab = 1 }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: isPad ? 32 : 24, weight: .bold))
+                            Text("Smart Speak")
+                                .font(.system(size: isPad ? 24 : 18, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, isPad ? 20 : 15)
+                        .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
+                        .foregroundColor(selectedTab == 1 ? .purple : .secondary)
+                    }
+                }
+                .background(.ultraThinMaterial)
+            }
+        }
+        .ignoresSafeArea(edges: .bottom)
+        .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
+                // If transcription just finished and we're on the expander tab, trigger expansion
+                if !isTranscribing && selectedTab == 1 {
+                    let newText = transcriptionVM.transcribedText
+                    let cleanText = newText.replacingOccurrences(of: "Press record to start.", with: "")
+                        .replacingOccurrences(of: "[No transcription returned]", with: "")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    if !cleanText.isEmpty {
+                        // Update shorthand and trigger expansion
+                        if aacVM.shorthandInput.isEmpty {
+                            aacVM.shorthandInput = cleanText
+                        } else {
+                            // We clear transcriptionVM before recording in Smart Speak tab,
+                            // so cleanText only contains the latest spoken words.
+                            // We just check if it's already there to be safe.
+                            let currentShorthand = aacVM.shorthandInput.lowercased()
+                            if !currentShorthand.contains(cleanText.lowercased()) {
+                                aacVM.shorthandInput += " " + cleanText
+                            }
+                        }
+                        
+                        Task {
+                            await aacVM.expand()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+struct TranscriptionView: View {
+    @ObservedObject var audioRecorder: AudioRecorder
+    @ObservedObject var transcriptionVM: TranscriptionViewModel
+    var isPad: Bool
+    
+    @State private var isShowingMailView = false
+    @State private var isShowingModelSelection = false
+
+    var body: some View {
         VStack(spacing: isPad ? 40 : 30) {
-            Text("SpeakEasy")
-                .font(isPad ? .system(size: 50, weight: .bold) : .largeTitle.bold())
-                .foregroundColor(.blue)
-                .multilineTextAlignment(.center)
-                .padding(.top, isPad ? 60 : 40)
+            // Header with Branding
+            HStack {
+                Text("SpeakEasy")
+                    .font(isPad ? .title.bold() : .headline.bold())
+                    .foregroundColor(.blue)
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.top, isPad ? 20 : 10)
             
             if !transcriptionVM.isModelLoaded {
                 VStack(spacing: 15) {
@@ -47,21 +164,6 @@ struct ContentView: View {
                             }
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        }
-                        
-                        Divider()
-                        
-                        // Context Section
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("AI Hint (Context)")
-                                .font(.headline)
-                            Text("This helps the AI understand slurred speech better.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            TextField("Context (e.g. key words)", text: $transcriptionVM.initialPrompt)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .font(isPad ? .title3 : .body)
                         }
                         
                         Divider()

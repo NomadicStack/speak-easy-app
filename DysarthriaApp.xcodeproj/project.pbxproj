@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		972463562FA8137A00E244EE /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 972463552FA8137A00E244EE /* WhisperKit */; };
 		972463742FA8377500E244EE /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972463732FA8377500E244EE /* MailView.swift */; };
+		973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 972463812FA8137A00E244EE /* LiteRTLMSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */,
 				972463562FA8137A00E244EE /* WhisperKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -63,6 +65,7 @@
 				9724633A2FA8105900E244EE /* Sources */,
 				9724633B2FA8105900E244EE /* Frameworks */,
 				9724633C2FA8105900E244EE /* Resources */,
+				972463902FA8105900E244EE /* Re-sign Frameworks */,
 			);
 			buildRules = (
 			);
@@ -74,6 +77,7 @@
 			name = DysarthriaApp;
 			packageProductDependencies = (
 				972463552FA8137A00E244EE /* WhisperKit */,
+				972463812FA8137A00E244EE /* LiteRTLMSwift */,
 			);
 			productName = DysarthriaApp;
 			productReference = 9724633E2FA8105900E244EE /* DysarthriaApp.app */;
@@ -105,6 +109,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				972463542FA8137A00E244EE /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
+				972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9724633F2FA8105900E244EE /* Products */;
@@ -125,6 +130,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		972463902FA8105900E244EE /* Re-sign Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Re-sign Frameworks";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "find \"${CODESIGNING_FOLDER_PATH}/Frameworks\" -name \"*.dylib\" -o -name \"*.framework\" | xargs codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --timestamp=none --generate-entitlement-der\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		9724633A2FA8105900E244EE /* Sources */ = {
@@ -175,7 +202,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -238,7 +265,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -262,6 +289,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DysarthriaApp/DysarthriaApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8VZ8M4A64U;
@@ -295,6 +323,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DysarthriaApp/DysarthriaApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8VZ8M4A64U;
@@ -355,6 +384,14 @@
 				kind = branch;
 			};
 		};
+		972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mylovelycodes/LiteRTLM-Swift.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -362,6 +399,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 972463542FA8137A00E244EE /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
 			productName = WhisperKit;
+		};
+		972463812FA8137A00E244EE /* LiteRTLMSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */;
+			productName = LiteRTLMSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

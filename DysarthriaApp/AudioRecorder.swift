@@ -10,6 +10,7 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     func startRecording() {
         let session = AVAudioSession.sharedInstance()
         do {
+            // Explicitly set category every time to ensure we switch from .playback (TTS) to .playAndRecord
             try session.setCategory(.playAndRecord, mode: .default, options: .defaultToSpeaker)
             try session.setActive(true)
             
@@ -41,9 +42,8 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         audioRecorder?.stop()
         isRecording = false
         
-        // Deactivate audio session to release resources
-        let session = AVAudioSession.sharedInstance()
-        try? session.setActive(false, options: .notifyOthersOnDeactivation)
+        // Do not deactivate session immediately as it can interfere with subsequent audio tasks
+        // like Text-to-Speech synthesis.
         
         return recordingURL
     }

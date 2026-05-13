@@ -17,8 +17,10 @@ SpeakEasy is a specialized iOS application designed to provide high-accuracy spe
 
 To provide 100% offline transcription and protect user privacy, SpeakEasy bundles a custom fine-tuned AI model directly within the app.
 
-- **Total App Size:** ~500 MB – 550 MB
-- **Model Size:** ~468 MB (Custom Dysarthria Model)
+- **App Size:** ~500 MB (base) + 1.4 GB (Gemma 2B)
+- **Model Size:** 
+    - Transcription: ~468 MB (Custom Whisper)
+    - Smart Speak: ~1.4 GB (Gemma 2B IT GPU)
 - **Data Privacy:** Because the model is stored locally, your voice recordings are never uploaded to the cloud or shared with third parties.
 
 ## 🛠 Tech Stack

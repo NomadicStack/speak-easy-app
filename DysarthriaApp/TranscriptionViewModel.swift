@@ -17,7 +17,6 @@ class TranscriptionViewModel: ObservableObject {
     @Published var isTranscribing: Bool = false
     @Published var modelLoadingMessage: String = "Loading model..."
     @Published var isModelLoaded: Bool = false
-    @Published var initialPrompt: String = "The following is a transcription of a speaker with dysarthria, focusing on clear and accurate text output."
     
     // Stats and Feedback
     @Published var totalTranscriptions: Int = 0
@@ -186,12 +185,12 @@ class TranscriptionViewModel: ObservableObject {
                 var options = DecodingOptions()
                 options.temperature = 0.0
                 options.temperatureIncrementOnFallback = 0.2
-                options.suppressBlank = false // Help with initial silence
-                
-                // Note: promptTokens is currently disabled due to reports of empty results in some WhisperKit versions
-                // if let tokenizer = whisperKit.tokenizer {
-                //     options.promptTokens = tokenizer.encode(text: self.initialPrompt)
-                // }
+                options.temperatureFallbackCount = 0 // Disable fallbacks to stick with the best guess
+                options.logProbThreshold = nil // Do not reject based on confidence
+                options.firstTokenLogProbThreshold = nil // Do not reject based on the first word
+                options.suppressBlank = false
+                options.language = "en"
+                options.verbose = false
                 
                 // Transcribe the audio file
                 print("Starting transcription for file: \(url.path)")

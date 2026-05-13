@@ -1,5 +1,5 @@
 {
-  "originHash" : "1400546783020ebaf6ca4c0151e0f7dc0f7f7bde69741117ad0306df5866fd05",
+  "originHash" : "bb8cbe2d187bbd4a234ef99eda39cb90ae248a7a03510da1e6ba0ae0eb89eb76",
   "pins" : [
     {
       "identity" : "argmax-oss-swift",
@@ -8,6 +8,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "c9cf2033012c900d1b15a2f3f423c2901cbbf40d"
+      }
+    },
+    {
+      "identity" : "litertlm-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mylovelycodes/LiteRTLM-Swift.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "0e63b19c21ba562d6824fbfc409fba0916acea18"
       }
     },
     {

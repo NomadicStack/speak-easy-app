@@ -41,7 +41,33 @@ You can save common contacts (like Mom, Dad, or a Caregiver) to send messages ev
 
 ---
 
-## 3. Settings & AI Brain
+## 3. Managing Quick Chips
+
+Quick Chips are large tiles that let you quickly add common phrases to your shorthand.
+
+1. In the **Smart Speak** tab, tap the **Purple Brain Icon** (Settings).
+2. Expand **"Manage Quick Chips"**.
+3. **Add:** Type a new shortcut (like "🍎 hungry") and tap **"Add Shortcut"**.
+4. **Edit:** Tap any shortcut name to change its text.
+5. **Delete:** Tap the **Red Trash Icon** next to any shortcut to remove it instantly.
+6. **Board Layout:** Shortcuts are arranged in a grid like a communication board. Tap the icons to build your message.
+
+---
+
+## 4. Navigation & Layout
+
+### Side Navigation (iPad Landscape)
+- When using an iPad in landscape mode, you will see a slim bar on the left with icons.
+- **Expand:** Tap the **Menu Icon** (three lines) at the top to see the full names of each tab.
+- **Compact:** Tap the menu icon again to shrink the bar and give more space to your text.
+
+### Shorthand Input
+- **Portrait:** The input box is slim to leave more room for shortcuts.
+- **Landscape:** The input box is taller and will automatically wrap your text as you speak or tap chips.
+
+---
+
+## 5. Settings & AI Brain
 
 Tapping the **Purple Brain Icon** in the Smart Speak tab opens your settings:
 
@@ -51,7 +77,7 @@ Tapping the **Purple Brain Icon** in the Smart Speak tab opens your settings:
 
 ---
 
-## 4. Feedback & Data Management
+## 5. Feedback & Data Management
 
 You can help improve the app by sending transcription corrections to the development team.
 
@@ -68,7 +94,7 @@ You can help improve the app by sending transcription corrections to the develop
 
 ---
 
-## 5. Accessibility Tips
+## 6. Accessibility Tips
 
 - **Large Targets:** Every button is oversized. In Smart Speak, you can tap anywhere on the large sentence cards to trigger speech.
 - **High-Visibility Navigation:** The navigation tabs at the bottom are extra large with huge text. You don't need to be precise—just tap the general area.

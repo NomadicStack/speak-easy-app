@@ -153,3 +153,14 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
 *   **Dynamic Settings UI:** Added a dedicated management section in the Settings view for adding, editing, and deleting Quick Chips.
 *   **Scrollable Chip Grid:** Wrapped the landscape chip grid in a `ScrollView` to prevent layout overflow when many chips are added.
 *   **Shorthand Area Refinement:** Increased the height of the AAC shorthand box and optimized font sizes to balance visibility with content density.
+
+### 10. UI Polish & Component Optimization (May 2026)
+*   **Collapsible iPad Sidebar**: Refactored the iPad landscape navigation rail to be icon-only by default (100pt width), expanding to 220pt with full labels via a dedicated menu toggle. Uses `.spring()` animations for smooth state transitions.
+*   **Quick Chip "Communication Board"**: Replaced capsule-style chips with a large, rectangular tile grid. Features prominent emojis and bold text, providing a "soundboard" experience with large, accessible hit targets.
+*   **Explicit Deletion**: Replaced the "swipe-to-delete" gesture for Quick Chips with a visible **Red Trash Icon** next to each entry in the Settings view to improve discoverability.
+*   **Information Density Refinement**:
+    *   **Quick Chips**: Tiles use a `LazyVGrid` across all orientations, eliminating unintuitive horizontal scrolling.
+    *   **Generated Options**: Redesigned sentence cards with compact, corner-aligned **Speak** and **Message** circular buttons, maximizing space for text.
+    *   **Shorthand Input**: Implemented orientation-aware height constraints (140pt in landscape for wrapping, 50-80pt in portrait for compactness).
+*   **Record Button Balancing**: Scaled down the primary record button (140pt on iPad, 90pt on iPhone) to reclaim vertical space while maintaining accessibility standards.
+*   **Layout Stability**: Applied `maxHeight: .infinity` and strategic `Spacer` management to ensure UI components remain visible and properly positioned on initial load and empty states.

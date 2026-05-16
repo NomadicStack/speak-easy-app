@@ -110,7 +110,7 @@ struct ModelSelectionView: View {
                             .foregroundColor(.secondary)
                         
                         ForEach(chipManager.chips) { chip in
-                            HStack {
+                            HStack(spacing: 15) {
                                 TextField("Shortcut Label", text: Binding(
                                     get: { chip.label },
                                     set: { newValue in
@@ -122,7 +122,16 @@ struct ModelSelectionView: View {
                                 .font(isPad ? .title3 : .body)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 
-                                Spacer()
+                                Button(action: {
+                                    if let index = chipManager.chips.firstIndex(where: { $0.id == chip.id }) {
+                                        chipManager.deleteChip(at: IndexSet(integer: index))
+                                    }
+                                }) {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                        .font(isPad ? .title3 : .body)
+                                }
+                                .buttonStyle(.borderless)
                             }
                             .padding(.vertical, isPad ? 10 : 5)
                         }

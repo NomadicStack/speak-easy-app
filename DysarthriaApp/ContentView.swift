@@ -10,10 +10,10 @@ struct ContentView: View {
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
     @AppStorage("user_email") var userEmail: String = ""
+    @State private var isRailExpanded = false
 
-    
-    init() {
-        // Make tab bar text larger for accessibility
+
+    init() {        // Make tab bar text larger for accessibility
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         
@@ -45,48 +45,68 @@ struct ContentView: View {
                 HStack(spacing: 0) {
                     // Vertical Navigation Rail for iPad Landscape
                     VStack(spacing: 40) {
-                        Spacer()
-                            .frame(height: 40)
+                        Button(action: { withAnimation(.spring()) { isRailExpanded.toggle() } }) {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.title.bold())
+                                .foregroundColor(.blue)
+                                .frame(width: 80, height: 80)
+                        }
+                        .padding(.top, 20)
                         
-                        Text("SpeakEasy")
-                            .font(.title.bold())
-                            .foregroundColor(.blue)
-                            .padding(.bottom, 40)
+                        if isRailExpanded {
+                            Text("SpeakEasy")
+                                .font(.title2.bold())
+                                .foregroundColor(.blue)
+                                .transition(.opacity)
+                        }
                         
                         // Transcribe Tab
                         Button(action: { selectedTab = 0 }) {
-                            VStack(spacing: 12) {
+                            HStack(spacing: 15) {
                                 Image(systemName: "waveform")
-                                    .font(.system(size: 44, weight: .bold))
-                                Text("Transcribe")
-                                    .font(.system(size: 24, weight: .bold))
+                                    .font(.system(size: 34, weight: .bold))
+                                    .frame(width: 60)
+                                
+                                if isRailExpanded {
+                                    Text("Transcribe")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .fixedSize()
+                                }
                             }
-                            .frame(width: 160)
-                            .padding(.vertical, 30)
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, isRailExpanded ? 20 : 0)
+                            .frame(width: isRailExpanded ? 200 : 80, alignment: .leading)
                             .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
                             .foregroundColor(selectedTab == 0 ? .blue : .secondary)
-                            .cornerRadius(20)
+                            .cornerRadius(16)
                         }
                         
                         // Smart Speak Tab
                         Button(action: { selectedTab = 1 }) {
-                            VStack(spacing: 12) {
+                            HStack(spacing: 15) {
                                 Image(systemName: "sparkles")
-                                    .font(.system(size: 44, weight: .bold))
-                                Text("Smart Speak")
-                                    .font(.system(size: 24, weight: .bold))
+                                    .font(.system(size: 34, weight: .bold))
+                                    .frame(width: 60)
+                                
+                                if isRailExpanded {
+                                    Text("Smart Speak")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .fixedSize()
+                                }
                             }
-                            .frame(width: 160)
-                            .padding(.vertical, 30)
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, isRailExpanded ? 20 : 0)
+                            .frame(width: isRailExpanded ? 200 : 80, alignment: .leading)
                             .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
                             .foregroundColor(selectedTab == 1 ? .purple : .secondary)
-                            .cornerRadius(20)
+                            .cornerRadius(16)
                         }
                         
                         Spacer()
                     }
-                    .frame(width: 200)
+                    .frame(width: isRailExpanded ? 220 : 100)
                     .background(.ultraThinMaterial)
+                    .animation(.spring(), value: isRailExpanded)
                     
                     Divider()
                     
@@ -391,6 +411,7 @@ struct TranscriptionView: View {
             
             ScrollView {
                 if transcriptionVM.isEditing {
+                    // ... (no changes to inner content)
                     VStack(alignment: .trailing) {
                         TextEditor(text: $transcriptionVM.transcribedText)
                             .font(.system(size: isPad ? 48 : 28, weight: .bold))
@@ -426,10 +447,11 @@ struct TranscriptionView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+            .frame(maxWidth: 1000, maxHeight: .infinity)
+            .layoutPriority(1)
             .background(Color.gray.opacity(0.1))
             .cornerRadius(24)
             .padding(.horizontal, isPad ? (isLandscape ? 40 : 80) : 20)
-            .frame(maxWidth: 1000)
             
             if transcriptionVM.isTranscribing {
                 HStack(spacing: 20) {
@@ -481,7 +503,7 @@ struct TranscriptionView: View {
                 }) {
                     ZStack {
                         // Larger button size on iPads
-                        let buttonSize: CGFloat = isPad ? 180 : 110
+                        let buttonSize: CGFloat = isPad ? 140 : 90
                         
                         Circle()
                             .fill(audioRecorder.isRecording ? Color.red : Color.blue)

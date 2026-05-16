@@ -22,16 +22,17 @@ struct AACExpanderView: View {
             // 2-Column Layout for iPad Landscape
             HStack(spacing: 0) {
                 // Left Column: Input and Quick Chips
-                VStack(spacing: 30) {
+                VStack(spacing: 20) {
                     header
                     shorthandDisplay
                     quickChipsView
                     
-                    Spacer()
+                    Spacer(minLength: 20)
                     
                     bottomControls
                 }
-                .frame(width: 450)
+                .frame(width: 600)
+                .frame(maxHeight: .infinity)
                 .padding(.trailing, 20)
                 
                 Divider()
@@ -45,9 +46,13 @@ struct AACExpanderView: View {
                         .padding(.horizontal)
                         .padding(.top, 20)
                     
+                    Spacer()
                     resultsSection
+                    Spacer()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             // Standard Portrait Layout
             VStack(spacing: isPad ? 40 : 20) {
@@ -55,6 +60,9 @@ struct AACExpanderView: View {
                 shorthandDisplay
                 quickChipsView
                 resultsSection
+                
+                Spacer()
+                
                 bottomControls
             }
         }
@@ -102,7 +110,7 @@ struct AACExpanderView: View {
                 Text(viewModel.shorthandInput.isEmpty ? "Speak your shorthand..." : viewModel.shorthandInput)
                     .font(.system(size: isPad ? 38 : 24, weight: .bold))
                     .foregroundColor(viewModel.shorthandInput.isEmpty ? .gray.opacity(0.5) : .primary)
-                    .frame(maxWidth: .infinity, minHeight: isPad ? 140 : 80, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, minHeight: isPad ? (isLandscape ? 140 : 80) : 50, alignment: .topLeading)
                     .padding(isPad ? 30 : 15)
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(24)
@@ -123,52 +131,75 @@ struct AACExpanderView: View {
     private var quickChipsView: some View {
         Group {
             if isPad && isLandscape {
-                // Wrapping Flow-like layout using LazyVGrid for iPad Landscape
-                // Wrap in ScrollView to prevent pushing buttons down
+                // Large Board for iPad Landscape
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 15)], spacing: 15) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
                         ForEach(chipManager.chips) { chip in
-                            chipButton(chip.label)
+                            chipTile(chip.label)
                         }
                     }
                     .padding(.vertical, 5)
                 }
                 .padding(.horizontal)
-                .frame(maxHeight: .infinity) // Allow it to take available space
+                .frame(minHeight: 200, maxHeight: .infinity)
             } else {
-                // Standard Horizontal Scroll for Portrait/iPhone
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 15) {
-                        ForEach(chipManager.chips) { chip in
-                            chipButton(chip.label)
+                // Structured Grid for Portrait/iPhone (Max 2-3 rows visible)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Shortcuts")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: isPad ? 150 : 90), spacing: 10)], spacing: 10) {
+                            ForEach(chipManager.chips) { chip in
+                                chipTile(chip.label)
+                            }
                         }
+                        .padding(.horizontal)
+                        .padding(.vertical, 5)
                     }
-                    .padding(.horizontal)
+                    .frame(maxHeight: isPad ? 400 : 160) // Limit height to keep results visible
                 }
             }
         }
     }
     
-    private func chipButton(_ chip: String) -> some View {
-        Button(action: {
-            // Extract text without emoji (assumes "EMOJI space text")
-            let components = chip.components(separatedBy: " ")
-            let chipText = components.count > 1 ? components.dropFirst().joined(separator: " ") : chip
-            
+    private func chipTile(_ chip: String) -> some View {
+        let components = chip.components(separatedBy: " ")
+        let emoji = components.first ?? ""
+        let text = components.count > 1 ? components.dropFirst().joined(separator: " ") : ""
+        
+        return Button(action: {
             if viewModel.shorthandInput.isEmpty {
-                viewModel.shorthandInput = chipText
+                viewModel.shorthandInput = text.isEmpty ? chip : text
             } else {
-                viewModel.shorthandInput += " " + chipText
+                viewModel.shorthandInput += " " + (text.isEmpty ? chip : text)
             }
             Task { await viewModel.expand() }
         }) {
-            Text(chip)
-                .font(isPad ? .title3.bold() : .body.bold())
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(Color.blue.opacity(0.1))
-                .foregroundColor(.blue)
-                .clipShape(Capsule())
+            VStack(spacing: isPad ? 8 : 4) {
+                Text(emoji)
+                    .font(.system(size: isPad ? 44 : 28))
+                
+                if !text.isEmpty {
+                    Text(text)
+                        .font(.system(size: isPad ? 16 : 12, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, isPad ? 15 : 10)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.blue.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.blue.opacity(0.15), lineWidth: 1.5)
+            )
+            .foregroundColor(.blue)
         }
     }
     
@@ -187,59 +218,59 @@ struct AACExpanderView: View {
             .cornerRadius(24)
             .padding(.horizontal)
         } else if viewModel.isGenerating || transcriptionVM.isTranscribing {
-            Spacer()
             loadingView
-            Spacer()
         } else {
-            Spacer()
             emptyStateView
-            Spacer()
         }
     }
     
     private func optionButton(_ option: String) -> some View {
-        HStack(spacing: 0) {
+        ZStack(alignment: .bottomTrailing) {
             // Main text area triggers speech
             Button(action: {
                 viewModel.speak(option)
             }) {
-                HStack(spacing: 20) {
+                HStack {
                     Text(option)
-                        .font(.system(size: isPad ? 34 : 22, weight: .bold))
+                        .font(.system(size: isPad ? 28 : 18, weight: .bold))
                         .multilineTextAlignment(.leading)
                         .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.trailing, isPad ? 110 : 80) // Space for corner buttons
                     
                     Spacer()
                 }
-                .padding(isPad ? 40 : 25)
-                .frame(maxWidth: .infinity)
+                .padding(isPad ? 30 : 20)
+                .frame(maxWidth: .infinity, minHeight: isPad ? 100 : 80, alignment: .leading)
             }
             
-            // Action buttons on the right
-            HStack(spacing: isPad ? 30 : 15) {
-                // Speak Button (Visual indicator)
+            // Compact Action buttons in the corner
+            HStack(spacing: isPad ? 15 : 10) {
+                // Speak Button
                 Button(action: { viewModel.speak(option) }) {
                     Image(systemName: "speaker.wave.2.fill")
-                        .font(.system(size: isPad ? 44 : 28))
+                        .font(.system(size: isPad ? 20 : 16, weight: .bold))
                         .foregroundColor(.purple)
+                        .frame(width: isPad ? 50 : 40, height: isPad ? 50 : 40)
+                        .background(Color.purple.opacity(0.1))
+                        .clipShape(Circle())
                 }
                 
                 // Message Button
                 Button(action: {
-                    // Smart recipient selection
                     let foundRecipient = ContactManager.shared.findRecipient(for: viewModel.shorthandInput)
-                    // If no contact found, pass an empty string (or empty list) instead of falling back to caregiverNumber
-                    // to allow manual input.
                     let recipient = foundRecipient ?? ""
                     MessageService.shared.sendMessage(text: option, recipient: recipient)
                 }) {
                     Image(systemName: "message.fill")
-                        .font(.system(size: isPad ? 44 : 28))
+                        .font(.system(size: isPad ? 20 : 16, weight: .bold))
                         .foregroundColor(.blue)
+                        .frame(width: isPad ? 50 : 40, height: isPad ? 50 : 40)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Circle())
                 }
             }
-            .padding(.trailing, isPad ? 40 : 25)
+            .padding([.bottom, .trailing], isPad ? 20 : 15)
         }
         .background(Color.white)
         .cornerRadius(24)
@@ -273,7 +304,7 @@ struct AACExpanderView: View {
             Image(systemName: "mic.badge.plus")
                 .font(.system(size: isPad ? 120 : 80))
                 .foregroundColor(.purple.opacity(0.3))
-            Text("Tap the microphone below\nto speak your shorthand.")
+            Text("Tap the microphone\nto speak your shorthand.")
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
                 .font(isPad ? .title : .headline)
@@ -315,7 +346,7 @@ struct AACExpanderView: View {
                 }
             }) {
                 ZStack {
-                    let buttonSize: CGFloat = isPad ? 180 : 110
+                    let buttonSize: CGFloat = isPad ? 140 : 90
                     Circle()
                         .fill(audioRecorder.isRecording ? Color.red : Color.blue)
                         .frame(width: buttonSize, height: buttonSize)

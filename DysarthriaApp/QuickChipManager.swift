@@ -18,8 +18,8 @@ class QuickChipManager: ObservableObject {
     private let storageKey = "saved_quick_chips"
     
     private let defaultChips = [
-        "💧 thirsty", "🍕 hungry", "🚌 bus late", 
-        "👨‍⚕️ doc appt", "🔋 low battery", "🚪 open door"
+        "🍕 hungry", "😴 tired", "💧 thirsty", 
+        "👩‍🦱 mom", "👨‍🦱 dad", "🚽 bathroom", "🔋 low battery"
     ]
     
     private init() {

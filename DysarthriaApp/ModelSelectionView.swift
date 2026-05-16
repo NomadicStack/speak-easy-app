@@ -12,12 +12,19 @@ struct ModelSelectionView: View {
     @State private var newContactName: String = ""
     @State private var newContactNumber: String = ""
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+    
+    var isPad: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+    
     var body: some View {
         List {
             // 1. AI Model Management (Top Priority)
-            Section(header: Text("AI Brain (Model Management)")) {
+            Section(header: Text("AI Brain (Model Management)").font(isPad ? .title3.bold() : .caption.bold())) {
                 ForEach(modelManager.availableModels) { model in
-                    ModelRow(model: model, modelManager: modelManager)
+                    ModelRow(model: model, modelManager: modelManager, isPad: isPad)
                         .swipeActions(edge: .trailing) {
                             if model.localURL != nil {
                                 Button(role: .destructive) {
@@ -31,42 +38,45 @@ struct ModelSelectionView: View {
             }
             
             // 2. Caregiver & Contacts (Collapsible)
-            Section(header: Text("Contacts")) {
+            Section(header: Text("Contacts").font(isPad ? .title3.bold() : .caption.bold())) {
                 DisclosureGroup("Manage Contacts") {
-                    VStack(alignment: .leading, spacing: 15) {
-                        VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 10) {
                             Text("Primary Caregiver (Fallback)")
-                                .font(.caption.bold())
+                                .font(isPad ? .headline : .caption.bold())
                                 .foregroundColor(.secondary)
                             TextField("Phone Number", text: $caregiverNumber)
                                 .keyboardType(.phonePad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
                         }
                         
                         Divider()
                         
                         Text("Other Contacts (Mention in shorthand)")
-                            .font(.caption.bold())
+                            .font(isPad ? .headline : .caption.bold())
                             .foregroundColor(.secondary)
                         
                         ForEach(contactManager.contacts) { contact in
                             HStack {
-                                Text(contact.name).font(.headline)
+                                Text(contact.name).font(isPad ? .title3.bold() : .headline)
                                 Spacer()
-                                Text(contact.phoneNumber).font(.subheadline).foregroundColor(.secondary)
+                                Text(contact.phoneNumber).font(isPad ? .headline : .subheadline).foregroundColor(.secondary)
                             }
+                            .padding(.vertical, isPad ? 10 : 5)
                         }
                         .onDelete { indexSet in
                             contactManager.deleteContact(at: indexSet)
                         }
                         
-                        VStack(spacing: 8) {
-                            HStack {
+                        VStack(spacing: 15) {
+                            HStack(spacing: 15) {
                                 TextField("Name", text: $newContactName)
                                 TextField("Number", text: $newContactNumber)
                                     .keyboardType(.phonePad)
                             }
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .font(isPad ? .title3 : .body)
                             
                             Button(action: {
                                 guard !newContactName.isEmpty && !newContactNumber.isEmpty else { return }
@@ -74,47 +84,51 @@ struct ModelSelectionView: View {
                                 newContactName = ""
                                 newContactNumber = ""
                             }) {
-                                Label("Add", systemImage: "plus.circle.fill")
+                                Label("Add Contact", systemImage: "plus.circle.fill")
+                                    .font(isPad ? .title3.bold() : .headline)
                                     .frame(maxWidth: .infinity)
-                                    .padding(8)
+                                    .padding(isPad ? 15 : 10)
                                     .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(8)
+                                    .cornerRadius(12)
                             }
                         }
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 10)
                 }
+                .font(isPad ? .title3.bold() : .headline)
             }
             
             // 3. Testing & Debug (Collapsible)
-            Section(header: Text("Advanced")) {
+            Section(header: Text("Advanced").font(isPad ? .title3.bold() : .caption.bold())) {
                 DisclosureGroup("Developer Settings") {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 25) {
                         // User Profile
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             Text("User Profile")
-                                .font(.caption.bold())
+                                .font(isPad ? .headline : .caption.bold())
                                 .foregroundColor(.secondary)
                             
                             TextField("User Name", text: $userName)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
                         }
                         
                         Divider()
                         
                         // Simulation Toggle
                         Toggle(isOn: $useSimulation) {
-                            VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text("Simulate AI Model")
-                                    .font(.headline)
+                                    .font(isPad ? .title3.bold() : .headline)
                                 Text("Bypasses LLM loading for testing.")
-                                    .font(.caption)
+                                    .font(isPad ? .headline : .caption)
                                     .foregroundColor(.secondary)
                             }
                         }
                     }
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 15)
                 }
+                .font(isPad ? .title3.bold() : .headline)
             }
             
             Section {
@@ -122,16 +136,19 @@ struct ModelSelectionView: View {
                     modelManager.clearAllModels()
                 }) {
                     Label("Clear Cache", systemImage: "trash.fill")
+                        .font(isPad ? .title3.bold() : .headline)
                         .foregroundColor(.red)
                 }
+                .padding(.vertical, isPad ? 10 : 0)
             }
         }
-        .navigationTitle("Select AI Brain")
+        .navigationTitle("Settings")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Done") {
                     dismiss()
                 }
+                .font(isPad ? .title3.bold() : .headline.bold())
                 .disabled(modelManager.selectedModelId == nil)
             }
         }
@@ -141,49 +158,51 @@ struct ModelSelectionView: View {
 struct ModelRow: View {
     let model: ModelInfo
     @ObservedObject var modelManager: ModelManager
+    var isPad: Bool
     
     var body: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 20) {
             // Icon
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(Color.purple.opacity(0.1))
-                    .frame(width: 50, height: 50)
+                    .frame(width: isPad ? 80 : 50, height: isPad ? 80 : 50)
                 
                 Image(systemName: "cpu")
                     .foregroundColor(.purple)
-                    .font(.title3)
+                    .font(isPad ? .largeTitle : .title3)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(model.name)
-                    .font(.headline)
+                    .font(isPad ? .title2.bold() : .headline)
                 Text(model.description)
-                    .font(.caption)
+                    .font(isPad ? .title3 : .caption)
                     .foregroundColor(.secondary)
                 Text(model.sizeDisplay)
-                    .font(.system(size: 10, weight: .bold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .font(.system(size: isPad ? 16 : 10, weight: .bold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
                     .background(Color.gray.opacity(0.1))
-                    .cornerRadius(4)
+                    .cornerRadius(6)
             }
             
             Spacer()
             
             // Action Buttons
             if model.localURL != nil {
-                HStack(spacing: 10) {
+                HStack(spacing: 20) {
                     if modelManager.selectedModelId == model.id {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                            .font(.title2)
+                            .font(.system(size: isPad ? 40 : 24))
                     } else {
                         Button("Select") {
                             modelManager.selectModel(model)
                         }
                         .buttonStyle(.bordered)
                         .tint(.blue)
+                        .font(isPad ? .title3.bold() : .body)
                     }
                     
                     Button(action: {
@@ -191,16 +210,17 @@ struct ModelRow: View {
                     }) {
                         Image(systemName: "trash")
                             .foregroundColor(.red)
+                            .font(.system(size: isPad ? 30 : 20))
                     }
                     .buttonStyle(.borderless)
                 }
             } else if let progress = modelManager.downloadingModels[model.id] {
-                VStack(spacing: 4) {
+                VStack(spacing: 8) {
                     ProgressView(value: progress)
                         .progressViewStyle(.linear)
-                        .frame(width: 60)
+                        .frame(width: isPad ? 120 : 60)
                     Text("\(Int(progress * 100))%")
-                        .font(.system(size: 10))
+                        .font(.system(size: isPad ? 16 : 10))
                         .foregroundColor(.secondary)
                 }
             } else {
@@ -208,11 +228,11 @@ struct ModelRow: View {
                     modelManager.downloadModel(model)
                 }) {
                     Image(systemName: "icloud.and.arrow.down")
-                        .font(.title2)
+                        .font(.system(size: isPad ? 40 : 28))
                         .foregroundColor(.blue)
                 }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, isPad ? 15 : 8)
     }
 }

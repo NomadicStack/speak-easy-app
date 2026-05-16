@@ -140,3 +140,10 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
     *   **Record Button:** Increased to 100pt (iPhone) / 140pt (iPad).
     *   **Clear Button:** Sized at 70pt (iPhone) / 100pt (iPad) for easy thumb access during rapid usage cycles.
 *   **Visual Feedback:** The button bar utilizes dynamic opacity to indicate state (e.g., dimming the Clear button when the text is empty or transcription is in progress).
+
+### 8. iPad Landscape & Accessibility Scaling (May 2026)
+*   **Adaptive Sidebar:** Implemented a navigation rail for iPad in landscape mode, maximizing screen utility.
+*   **Two-Column AAC View:** Redesigned the "Smart Speak" interface for iPad landscape, separating inputs and results into two distinct vertical columns.
+*   **Wrapping Quick Chips:** Upgraded the "Quick Chips" from a scrollable list to a wrapping grid layout (`LazyVGrid`) in landscape mode to improve 1-tap accessibility.
+*   **Universal UI Scaling:** Dramatically increased font sizes (up to 72pt) and button sizes (up to 180pt) across all views to meet the needs of users with motor or visual impairments.
+*   **Orientation-Aware UI:** Leveraged `GeometryReader` alongside size classes to provide a seamless transition between portrait and landscape layouts.

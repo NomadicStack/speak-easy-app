@@ -37,60 +37,134 @@ struct ContentView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Main Content Area
-            Group {
-                if selectedTab == 0 {
-                    TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad)
-                } else {
-                    Group {
-                        if !hasCompletedOnboarding && !useSimulation {
-                            OnboardingView()
-                        } else {
-                            AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder)
-                        }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, isPad ? 110 : 90) // Leave space for custom tab bar
+        GeometryReader { geometry in
+            let isLandscape = geometry.size.width > geometry.size.height
+            let useRail = isPad && isLandscape
             
-            // Custom Large Tab Bar
-            VStack(spacing: 0) {
-                Divider()
+            if useRail {
                 HStack(spacing: 0) {
-                    // Transcribe Tab
-                    Button(action: { selectedTab = 0 }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "waveform")
-                                .font(.system(size: isPad ? 32 : 24, weight: .bold))
-                            Text("Transcribe")
-                                .font(.system(size: isPad ? 24 : 18, weight: .bold))
+                    // Vertical Navigation Rail for iPad Landscape
+                    VStack(spacing: 40) {
+                        Spacer()
+                            .frame(height: 40)
+                        
+                        Text("SpeakEasy")
+                            .font(.title.bold())
+                            .foregroundColor(.blue)
+                            .padding(.bottom, 40)
+                        
+                        // Transcribe Tab
+                        Button(action: { selectedTab = 0 }) {
+                            VStack(spacing: 12) {
+                                Image(systemName: "waveform")
+                                    .font(.system(size: 44, weight: .bold))
+                                Text("Transcribe")
+                                    .font(.system(size: 24, weight: .bold))
+                            }
+                            .frame(width: 160)
+                            .padding(.vertical, 30)
+                            .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
+                            .foregroundColor(selectedTab == 0 ? .blue : .secondary)
+                            .cornerRadius(20)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, isPad ? 20 : 15)
-                        .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
-                        .foregroundColor(selectedTab == 0 ? .blue : .secondary)
+                        
+                        // Smart Speak Tab
+                        Button(action: { selectedTab = 1 }) {
+                            VStack(spacing: 12) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 44, weight: .bold))
+                                Text("Smart Speak")
+                                    .font(.system(size: 24, weight: .bold))
+                            }
+                            .frame(width: 160)
+                            .padding(.vertical, 30)
+                            .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
+                            .foregroundColor(selectedTab == 1 ? .purple : .secondary)
+                            .cornerRadius(20)
+                        }
+                        
+                        Spacer()
                     }
+                    .frame(width: 200)
+                    .background(.ultraThinMaterial)
                     
-                    // Smart Speak Tab
-                    Button(action: { selectedTab = 1 }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: isPad ? 32 : 24, weight: .bold))
-                            Text("Smart Speak")
-                                .font(.system(size: isPad ? 24 : 18, weight: .bold))
+                    Divider()
+                    
+                    // Main Content Area
+                    Group {
+                        if selectedTab == 0 {
+                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                        } else {
+                            Group {
+                                if !hasCompletedOnboarding && !useSimulation {
+                                    OnboardingView()
+                                } else {
+                                    AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder, isLandscape: isLandscape)
+                                }
+                            }
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, isPad ? 20 : 15)
-                        .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
-                        .foregroundColor(selectedTab == 1 ? .purple : .secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .ignoresSafeArea(edges: .leading)
+            } else {
+                // Standard Portrait / iPhone Layout
+                ZStack(alignment: .bottom) {
+                    // Main Content Area
+                    Group {
+                        if selectedTab == 0 {
+                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                        } else {
+                            Group {
+                                if !hasCompletedOnboarding && !useSimulation {
+                                    OnboardingView()
+                                } else {
+                                    AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder, isLandscape: isLandscape)
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.bottom, isPad ? 140 : 100) // Increased space for larger tab bar
+                    
+                    // Custom Large Tab Bar
+                    VStack(spacing: 0) {
+                        Divider()
+                        HStack(spacing: 0) {
+                            // Transcribe Tab
+                            Button(action: { selectedTab = 0 }) {
+                                VStack(spacing: 10) {
+                                    Image(systemName: "waveform")
+                                        .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                    Text("Transcribe")
+                                        .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, isPad ? 30 : 20)
+                                .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
+                                .foregroundColor(selectedTab == 0 ? .blue : .secondary)
+                            }
+                            
+                            // Smart Speak Tab
+                            Button(action: { selectedTab = 1 }) {
+                                VStack(spacing: 10) {
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                    Text("Smart Speak")
+                                        .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, isPad ? 30 : 20)
+                                .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
+                                .foregroundColor(selectedTab == 1 ? .purple : .secondary)
+                            }
+                        }
+                        .background(.ultraThinMaterial)
                     }
                 }
-                .background(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
             }
         }
-        .ignoresSafeArea(edges: .bottom)
         .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
                 // If transcription just finished and we're on the expander tab, trigger expansion
                 if !isTranscribing && selectedTab == 1 {
@@ -126,6 +200,7 @@ struct TranscriptionView: View {
     @ObservedObject var audioRecorder: AudioRecorder
     @ObservedObject var transcriptionVM: TranscriptionViewModel
     var isPad: Bool
+    var isLandscape: Bool = false
     
     @State private var isShowingMailView = false
     @State private var isShowingModelSelection = false
@@ -134,41 +209,43 @@ struct TranscriptionView: View {
     @AppStorage("user_email") var userEmail: String = ""
 
     var body: some View {
-        VStack(spacing: isPad ? 40 : 30) {
-            // Header with Branding
-            HStack {
-                Text("SpeakEasy")
-                    .font(isPad ? .title.bold() : .headline.bold())
-                    .foregroundColor(.blue)
-                
-                Spacer()
+        VStack(spacing: isPad ? (isLandscape ? 20 : 50) : 30) {
+            // Header with Branding (Hide in Rail mode to avoid duplication)
+            if !isLandscape || !isPad {
+                HStack {
+                    Text("SpeakEasy")
+                        .font(isPad ? .largeTitle.bold() : .title2.bold())
+                        .foregroundColor(.blue)
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, isPad ? 20 : 10)
             }
-            .padding(.horizontal)
-            .padding(.top, isPad ? 20 : 10)
             
             if !transcriptionVM.isModelLoaded {
-                VStack(spacing: 15) {
+                VStack(spacing: 20) {
                     ProgressView()
-                        .scaleEffect(isPad ? 1.5 : 1.0)
+                        .scaleEffect(isPad ? 2.0 : 1.2)
                     Text(transcriptionVM.modelLoadingMessage)
-                        .font(isPad ? .title3 : .subheadline)
+                        .font(isPad ? .title : .headline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding()
             } else {
                 DisclosureGroup("Advanced & Stats") {
-                    VStack(alignment: .leading, spacing: 15) {
+                    VStack(alignment: .leading, spacing: 20) {
                         // Stats Section
-                        VStack(alignment: .leading, spacing: 5) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Usage Statistics")
-                                .font(.headline)
+                                .font(.title3.bold())
                             HStack {
                                 Text("Total Transcriptions: \(transcriptionVM.totalTranscriptions)")
                                 Spacer()
                                 Text("Corrections: \(transcriptionVM.totalCorrections)")
                             }
-                            .font(.caption)
+                            .font(.headline)
                             .foregroundColor(.secondary)
                         }
                         
@@ -176,30 +253,32 @@ struct TranscriptionView: View {
 
                         // Feedback Settings
                         DisclosureGroup("Feedback Configuration") {
-                            VStack(alignment: .leading, spacing: 10) {
-                                VStack(alignment: .leading, spacing: 5) {
+                            VStack(alignment: .leading, spacing: 15) {
+                                VStack(alignment: .leading, spacing: 8) {
                                     Text("Recipient Email")
-                                        .font(.caption)
+                                        .font(.headline)
                                         .foregroundColor(.secondary)
                                     TextField("developer@example.com", text: $feedbackRecipient)
                                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        .font(.title3)
                                         .autocapitalization(.none)
                                         .keyboardType(.emailAddress)
                                 }
 
-                                VStack(alignment: .leading, spacing: 5) {
+                                VStack(alignment: .leading, spacing: 8) {
                                     Text("Your Email (for follow-up)")
-                                        .font(.caption)
+                                        .font(.headline)
                                         .foregroundColor(.secondary)
                                     TextField("your@email.com", text: $userEmail)
                                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        .font(.title3)
                                         .autocapitalization(.none)
                                         .keyboardType(.emailAddress)
                                 }
                             }
-                            .padding(.vertical, 5)
+                            .padding(.vertical, 10)
                         }
-                        .font(.subheadline)
+                        .font(.headline)
 
                         Divider()
 
@@ -232,10 +311,11 @@ struct TranscriptionView: View {
                                 }
                             }) {
                                 Label("Send Feedback Report", systemImage: "envelope.fill")
+                                    .font(.headline)
                                     .frame(maxWidth: .infinity)
-                                    .padding(8)
+                                    .padding(15)
                                     .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(8)
+                                    .cornerRadius(12)
                             }
                             .sheet(isPresented: $isShowingMailView) {
                                 MailView(
@@ -252,10 +332,10 @@ struct TranscriptionView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 15)
                 }
-                .padding(.horizontal, isPad ? 60 : 20)
-                .font(.subheadline)
+                .padding(.horizontal, isPad ? (isLandscape ? 40 : 80) : 20)
+                .font(.title3)
                 .accentColor(.secondary)
             }
 
@@ -266,6 +346,7 @@ struct TranscriptionView: View {
                             transcriptionVM.isEditing = true
                         }) {
                             Label("Incorrect?", systemImage: "pencil.and.outline")
+                                .font(isPad ? .title3.bold() : .headline)
                                 .foregroundColor(.orange)
                         }
                     } else {
@@ -276,50 +357,52 @@ struct TranscriptionView: View {
                     Spacer()
 
                     // Model Ready Badge in the middle
-                    HStack(spacing: 4) {
+                    HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.caption)
+                            .font(isPad ? .title3 : .caption)
                         Text("Model Ready")
-                            .font(.caption.bold())
+                            .font(isPad ? .title3.bold() : .caption.bold())
                     }
                     .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 8)
                     .background(Capsule().fill(Color.green))
 
                     Spacer()
 
-                    HStack(spacing: isPad ? 30 : 20) {
+                    HStack(spacing: isPad ? 40 : 20) {
                         Button(action: {
                             UIPasteboard.general.string = transcriptionVM.transcribedText
                         }) {
                             Label("Copy", systemImage: "doc.on.doc")
+                                .font(isPad ? .title3.bold() : .headline)
                         }
                         .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
 
                         ShareLink(item: transcriptionVM.transcribedText) {
                             Label("Share", systemImage: "square.and.arrow.up")
+                                .font(isPad ? .title3.bold() : .headline)
                         }
                         .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
                     }
                 }
-                .padding(.horizontal, isPad ? 60 : 20)
+                .padding(.horizontal, isPad ? (isLandscape ? 40 : 80) : 20)
             }            
             
             ScrollView {
                 if transcriptionVM.isEditing {
                     VStack(alignment: .trailing) {
                         TextEditor(text: $transcriptionVM.transcribedText)
-                            .font(isPad ? .system(size: 34, weight: .bold) : .system(size: 24, weight: .bold))
-                            .frame(minHeight: 200)
-                            .padding(isPad ? 30 : 20)
+                            .font(.system(size: isPad ? 48 : 28, weight: .bold))
+                            .frame(minHeight: isLandscape ? 150 : 300)
+                            .padding(isPad ? 40 : 20)
                             .toolbar {
                                 ToolbarItemGroup(placement: .keyboard) {
                                     Spacer()
                                     Button("Save Correction") {
                                         transcriptionVM.saveCorrection()
                                     }
-                                    .bold()
+                                    .font(.headline.bold())
                                     .foregroundColor(.blue)
                                 }
                             }
@@ -328,56 +411,58 @@ struct TranscriptionView: View {
                             transcriptionVM.saveCorrection()
                         }) {
                             Text("Save Correction")
-                                .bold()
-                                .padding()
+                                .font(.title3.bold())
+                                .padding(20)
                                 .background(Color.green)
                                 .foregroundColor(.white)
-                                .cornerRadius(10)
+                                .cornerRadius(16)
                         }
-                        .padding([.bottom, .trailing])
+                        .padding([.bottom, .trailing], 20)
                     }
                 } else {
                     Text(transcriptionVM.transcribedText)
-                        .font(isPad ? .system(size: 54, weight: .bold) : .system(size: 34, weight: .bold))
-                        .padding(isPad ? 30 : 20)
+                        .font(.system(size: isPad ? (isLandscape ? 64 : 72) : 40, weight: .bold))
+                        .padding(isPad ? 40 : 20)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .background(Color.gray.opacity(0.1))
-            .cornerRadius(16)
-            .padding(.horizontal, isPad ? 60 : 20)
-            .frame(maxWidth: 900)
+            .cornerRadius(24)
+            .padding(.horizontal, isPad ? (isLandscape ? 40 : 80) : 20)
+            .frame(maxWidth: 1000)
             
             if transcriptionVM.isTranscribing {
-                HStack(spacing: 15) {
+                HStack(spacing: 20) {
                     ProgressView()
-                        .scaleEffect(isPad ? 1.2 : 1.0)
+                        .scaleEffect(isPad ? 1.5 : 1.2)
                     Text("Transcribing...")
-                        .font(isPad ? .title3 : .body)
+                        .font(isPad ? .title2 : .headline)
                         .foregroundColor(.secondary)
                 }
             } else {
                 // Placeholder to keep UI from jumping when progress disappears
-                Text(" ").font(isPad ? .title3 : .body).hidden()
+                Text(" ").font(isPad ? .title2 : .headline).hidden()
             }
             
-            Spacer()
+            if !isLandscape || !isPad {
+                Spacer()
+            }
             
             // Record and Clear Buttons
-            HStack(spacing: isPad ? 60 : 40) {
+            HStack(spacing: isPad ? 80 : 40) {
                 // Clear Button
                 Button(action: {
                     transcriptionVM.clearTranscription()
                 }) {
                     ZStack {
-                        let buttonSize: CGFloat = isPad ? 100 : 70
+                        let buttonSize: CGFloat = isPad ? 120 : 80
                         Circle()
                             .fill(Color.gray.opacity(0.2))
                             .frame(width: buttonSize, height: buttonSize)
-                            .shadow(radius: isPad ? 5 : 3)
+                            .shadow(radius: isPad ? 8 : 4)
                         
                         Image(systemName: "trash")
-                            .font(.system(size: buttonSize * 0.4, weight: .bold))
+                            .font(.system(size: buttonSize * 0.45, weight: .bold))
                             .foregroundColor(.primary)
                     }
                 }
@@ -396,22 +481,22 @@ struct TranscriptionView: View {
                 }) {
                     ZStack {
                         // Larger button size on iPads
-                        let buttonSize: CGFloat = isPad ? 140 : 100
+                        let buttonSize: CGFloat = isPad ? 180 : 110
                         
                         Circle()
                             .fill(audioRecorder.isRecording ? Color.red : Color.blue)
                             .frame(width: buttonSize, height: buttonSize)
-                            .shadow(radius: isPad ? 10 : 7)
+                            .shadow(radius: isPad ? 15 : 10)
                         
                         if audioRecorder.isRecording {
                             // Stop square
-                            RoundedRectangle(cornerRadius: isPad ? 10 : 6)
+                            RoundedRectangle(cornerRadius: isPad ? 12 : 8)
                                 .fill(Color.white)
                                 .frame(width: buttonSize * 0.35, height: buttonSize * 0.35)
                         } else {
                             // Microphone icon
                             Image(systemName: "mic.fill")
-                                .font(.system(size: buttonSize * 0.4, weight: .bold))
+                                .font(.system(size: buttonSize * 0.45, weight: .bold))
                                 .foregroundColor(.white)
                         }
                     }
@@ -419,7 +504,7 @@ struct TranscriptionView: View {
                 .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing)
                 .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
             }
-            .padding(.bottom, isPad ? 80 : 50)
+            .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 60)
         }
     }
 }

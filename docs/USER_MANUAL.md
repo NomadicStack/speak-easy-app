@@ -51,7 +51,24 @@ Tapping the **Purple Brain Icon** in the Smart Speak tab opens your settings:
 
 ---
 
-## 4. Accessibility Tips
+## 4. Feedback & Data Management
+
+You can help improve the app by sending transcription corrections to the development team.
+
+### Configuring Feedback
+1. In the **Transcribe** tab, tap **"Advanced & Stats"**.
+2. Expand the **"Feedback Configuration"** section.
+3. **Recipient Email:** Set the email address where feedback reports should be sent (default: `developer@example.com`).
+4. **Your Email:** Provide your own email address if you want the development team to be able to contact you for follow-up.
+
+### Sending Reports
+- When you have saved corrections, a **"Send Feedback Report"** button will appear in the "Advanced & Stats" section.
+- Tapping this will open an email draft with a text report and all associated audio files attached.
+- **Automatic Cleanup:** To save storage space on your device, all audio files and correction logs are **automatically deleted** after you successfully send the email. This ensures you only send new data in your next report.
+
+---
+
+## 5. Accessibility Tips
 
 - **Large Targets:** Every button is oversized. In Smart Speak, you can tap anywhere on the large sentence cards to trigger speech.
 - **High-Visibility Navigation:** The navigation tabs at the bottom are extra large with huge text. You don't need to be precise—just tap the general area.

@@ -8,6 +8,9 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
+    @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("user_email") var userEmail: String = ""
+
     
     init() {
         // Make tab bar text larger for accessibility
@@ -126,6 +129,9 @@ struct TranscriptionView: View {
     
     @State private var isShowingMailView = false
     @State private var isShowingModelSelection = false
+    
+    @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("user_email") var userEmail: String = ""
 
     var body: some View {
         VStack(spacing: isPad ? 40 : 30) {
@@ -167,7 +173,36 @@ struct TranscriptionView: View {
                         }
                         
                         Divider()
-                        
+
+                        // Feedback Settings
+                        DisclosureGroup("Feedback Configuration") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("Recipient Email")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    TextField("developer@example.com", text: $feedbackRecipient)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        .autocapitalization(.none)
+                                        .keyboardType(.emailAddress)
+                                }
+
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("Your Email (for follow-up)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    TextField("your@email.com", text: $userEmail)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        .autocapitalization(.none)
+                                        .keyboardType(.emailAddress)
+                                }
+                            }
+                            .padding(.vertical, 5)
+                        }
+                        .font(.subheadline)
+
+                        Divider()
+
                         // Report Section
                         if transcriptionVM.totalCorrections > 0 {
                             Button(action: {
@@ -175,7 +210,7 @@ struct TranscriptionView: View {
                                     isShowingMailView = true
                                 } else {
                                     // Fallback to share sheet if mail is not configured
-                                    let report = transcriptionVM.prepareFeedbackReport()
+                                    let report = transcriptionVM.prepareFeedbackReport(userEmail: userEmail)
                                     let audioURLs = transcriptionVM.getFeedbackAudioURLs()
                                     var items: [Any] = [report]
                                     items.append(contentsOf: audioURLs)
@@ -204,25 +239,28 @@ struct TranscriptionView: View {
                             }
                             .sheet(isPresented: $isShowingMailView) {
                                 MailView(
-                                    recipient: "developer@example.com", // Replace with your actual email
+                                    recipient: feedbackRecipient,
                                     subject: "SpeakEasy Feedback Report",
-                                    body: transcriptionVM.prepareFeedbackReport(),
-                                    attachments: transcriptionVM.getFeedbackAudioURLs()
+                                    body: transcriptionVM.prepareFeedbackReport(userEmail: userEmail),
+                                    attachments: transcriptionVM.getFeedbackAudioURLs(),
+                                    preferredSenderEmail: userEmail
                                 ) { result in
-                                    print("Mail result: \(result)")
+                                    if case .success(let mailResult) = result, mailResult == .sent {
+                                        transcriptionVM.clearFeedbackData()
+                                    }
                                 }
                             }
                         }
                     }
                     .padding(.vertical, 10)
-                    }
-                    .padding(.horizontal, isPad ? 60 : 20)
-                    .font(.subheadline)
-                    .accentColor(.secondary)
-                    }
+                }
+                .padding(.horizontal, isPad ? 60 : 20)
+                .font(.subheadline)
+                .accentColor(.secondary)
+            }
 
-                    if transcriptionVM.isModelLoaded {
-                    HStack {
+            if transcriptionVM.isModelLoaded {
+                HStack {
                     if !transcriptionVM.isEditing && transcriptionVM.transcribedText != "Press record to start." && !transcriptionVM.isTranscribing {
                         Button(action: {
                             transcriptionVM.isEditing = true
@@ -264,9 +302,10 @@ struct TranscriptionView: View {
                         }
                         .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
                     }
-                    }
-                    .padding(.horizontal, isPad ? 60 : 20)
-                    }            
+                }
+                .padding(.horizontal, isPad ? 60 : 20)
+            }            
+            
             ScrollView {
                 if transcriptionVM.isEditing {
                     VStack(alignment: .trailing) {

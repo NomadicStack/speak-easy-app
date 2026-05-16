@@ -107,15 +107,19 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
     *   Upgraded the "Model Ready" status message to a professional, pill-shaped badge with a checkmark icon and high-contrast styling.
 
 ### 4. Feedback & Fine-tuning Loop (Phase 1.5)
-*   **Correction Logic:** Implemented an "Incorrect?" feature that allows users to manually fix transcriptions.
+*   **Correction Logic:** Implemented an \"Incorrect?\" feature that allows users to manually fix transcriptions.
 *   **Data Collection:**
     *   **Audio Storage:** Permanent copies of audio files associated with corrections are saved to the `Documents/FeedbackAudio` directory.
     *   **Log Persistence:** Metadata (timestamp, original text, corrected text, audio filename) is stored as a JSON log in `UserDefaults`.
-*   **Accuracy Statistics:** Added real-time tracking of "Total Transcriptions" vs. "Total Corrections" to provide an empirical measure of model performance.
-*   **Reporting:** Integrated a direct **Email Reporting System** using `MessageUI`.
+*   **Accuracy Statistics:** Added real-time tracking of \"Total Transcriptions\" vs. \"Total Corrections\" to provide an empirical measure of model performance.
+*   **Reporting & Configuration:** 
     *   **Direct Mail:** Uses a SwiftUI-wrapped `MFMailComposeViewController` (`MailView.swift`) to open a pre-filled email draft.
-    *   **Audio Attachments:** Automatically attaches all archived `.wav` files from the `FeedbackAudio` directory to the email, providing the developer with a complete dataset (audio + ground truth text) for fine-tuning.
-    *   **Smart Fallback:** If Mail is not configured, the app falls back to a standard `UIActivityViewController` (Share Sheet) that includes both the text report and the audio files.
+    *   **Customizable Recipient:** The feedback destination is now configurable via a \"Feedback Configuration\" section in the UI (persisted via `@AppStorage`).
+    *   **User Identity:** Includes the user's optional email address in the report body for developer follow-up and sets it as the `preferredSendingEmailAddress` in the mail composer.
+*   **Storage Management & Cleanup:**
+    *   **Automated Cleanup:** Implemented `clearFeedbackData()` which is triggered automatically after a successful email send (`.sent` result).
+    *   **Resource Reclamation:** This method deletes all archived `.wav` files and clears the correction logs, preventing duplicate reports and ensuring the app doesn't consume excessive disk space over time.
+
 
 ### 5. Transcription Pipeline Stability (May 2026)
 *   **File Collision Avoidance:** Refactored `AudioRecorder` to generate unique filenames using UUIDs.

@@ -150,9 +150,12 @@ class TranscriptionViewModel: ObservableObject {
         }
     }
     
-    func prepareFeedbackReport() -> String {
+    func prepareFeedbackReport(userEmail: String = "") -> String {
         let logs = getLogs()
         var report = "SpeakEasy Feedback Report\n"
+        if !userEmail.isEmpty {
+            report += "User Email: \(userEmail)\n"
+        }
         report += "Total Transcriptions: \(totalTranscriptions)\n"
         report += "Total Corrections: \(totalCorrections)\n\n"
         
@@ -164,6 +167,24 @@ class TranscriptionViewModel: ObservableObject {
             report += "Corrected: \(log.correctedText)\n"
         }
         return report
+    }
+    
+    func clearFeedbackData() {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let feedbackFolder = documentsURL.appendingPathComponent("FeedbackAudio")
+        
+        // Delete all audio files in the feedback folder
+        let logs = getLogs()
+        for log in logs {
+            let url = feedbackFolder.appendingPathComponent(log.audioFileName)
+            if fileManager.fileExists(atPath: url.path) {
+                try? fileManager.removeItem(at: url)
+            }
+        }
+        
+        // Clear the logs in UserDefaults
+        UserDefaults.standard.removeObject(forKey: correctionsKey)
     }
     
     func transcribeAudio(at url: URL) {

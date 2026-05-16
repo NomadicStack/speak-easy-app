@@ -7,6 +7,7 @@ struct MailView: UIViewControllerRepresentable {
     let subject: String
     let body: String
     let attachments: [URL]
+    var preferredSenderEmail: String? = nil
     var result: (Result<MFMailComposeResult, Error>) -> Void
 
     class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
@@ -43,8 +44,13 @@ struct MailView: UIViewControllerRepresentable {
         vc.setToRecipients([recipient])
         vc.setSubject(subject)
         vc.setMessageBody(body, isHTML: false)
-        
+
+        if let sender = preferredSenderEmail, !sender.isEmpty {
+            vc.setPreferredSendingEmailAddress(sender)
+        }
+
         // Add attachments
+
         for url in attachments {
             if let data = try? Data(contentsOf: url) {
                 vc.addAttachmentData(data, mimeType: "audio/wav", fileName: url.lastPathComponent)

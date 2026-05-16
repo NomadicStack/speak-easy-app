@@ -65,6 +65,7 @@ To provide 100% offline transcription and protect user privacy, SpeakEasy bundle
 - **Advanced Context:** Added an expandable section for AI prompting.
 - **iPad Landscape Support:** Implemented a dedicated sidebar navigation rail and two-column AAC layout for horizontal iPad use.
 - **Wrapping Quick Chips:** Upgraded AAC shortcuts to a multi-line wrapping grid in landscape mode for better accessibility.
+- **User-Editable Quick Chips:** Added a management interface in Settings to add, edit, and delete custom shorthand shortcuts.
 
 ## ⚖️ License
 [Insert License Here - e.g., MIT]

@@ -147,3 +147,9 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
 *   **Wrapping Quick Chips:** Upgraded the "Quick Chips" from a scrollable list to a wrapping grid layout (`LazyVGrid`) in landscape mode to improve 1-tap accessibility.
 *   **Universal UI Scaling:** Dramatically increased font sizes (up to 72pt) and button sizes (up to 180pt) across all views to meet the needs of users with motor or visual impairments.
 *   **Orientation-Aware UI:** Leveraged `GeometryReader` alongside size classes to provide a seamless transition between portrait and landscape layouts.
+
+### 9. Dynamic Quick Chips & Input Refinement (May 2026)
+*   **QuickChipManager:** Implemented a new persistence layer for AAC shortcuts using `UserDefaults` and `JSONEncoder`.
+*   **Dynamic Settings UI:** Added a dedicated management section in the Settings view for adding, editing, and deleting Quick Chips.
+*   **Scrollable Chip Grid:** Wrapped the landscape chip grid in a `ScrollView` to prevent layout overflow when many chips are added.
+*   **Shorthand Area Refinement:** Increased the height of the AAC shorthand box and optimized font sizes to balance visibility with content density.

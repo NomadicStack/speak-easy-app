@@ -26,7 +26,7 @@ Following user feedback, the UI has been "up-scaled" significantly to support us
 | **Transcription Text** | iPad Landscape | 64pt Bold |
 | **Transcription Text** | iPad Portrait | 72pt Bold |
 | **Transcription Text** | iPhone | 40pt Bold |
-| **AAC Sorthand** | iPad | 48pt Bold |
+| **AAC Shorthand** | iPad | 38pt Bold |
 | **AAC Option Buttons** | iPad | 34pt Bold |
 
 ### Button & Touch Target Scaling
@@ -50,7 +50,8 @@ In landscape, the AAC view splits into:
 ### Wrapping Quick Chips (Adaptive Grid)
 *   **Problem**: A horizontal scroll view for "Quick Chips" is inefficient in landscape as it wastes vertical space and hides options.
 *   **Solution**: Implemented a `LazyVGrid` with `adaptive` columns (`minimum: 180pt`).
-*   **Behavior**: Chips wrap to new lines automatically, ensuring all 1-tap options are visible simultaneously without scrolling.
+*   **Behavior**: Chips wrap to new lines automatically.
+*   **Overflow Protection**: The grid is wrapped in a `ScrollView` with `.frame(maxHeight: .infinity)`. This ensures that even with dozens of custom chips, the **Record** and **Clear** buttons remain fixed and accessible at the bottom of the screen.
 
 ## 4. Implementation Details
 
@@ -61,8 +62,10 @@ The `body` was refactored into a `GeometryReader` block that switches between th
 The `quickChipsView` now uses a `Group` with a conditional check:
 ```swift
 if isPad && isLandscape {
-    LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 15)], spacing: 15) {
-        // ...
+    ScrollView {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 15)], spacing: 15) {
+            // ...
+        }
     }
 } else {
     ScrollView(.horizontal) {
@@ -74,3 +77,19 @@ if isPad && isLandscape {
 ### Visual Polish
 *   **Shadows**: Increased shadow radius on large buttons (up to 15pt) to provide better depth and visual separation.
 *   **Corner Radii**: Increased to 24pt for large containers to match the modern "soft" aesthetic of the up-scaled UI.
+
+## 5. Dynamic Content & Management
+
+### User-Editable Quick Chips
+The application has transitioned from hardcoded shortcuts to a fully dynamic system managed by `QuickChipManager`.
+*   **Persistence**: Chips are stored as `Codable` structs in `UserDefaults`, allowing users to maintain their custom shorthand library across sessions.
+*   **Management UI**: A "Smart Speak Shortcuts" section in Settings allows users to:
+    *   **Edit**: Tap and rename any existing chip in-place.
+    *   **Add**: Create new custom shortcuts with emojis and text.
+    *   **Delete**: Swipe-to-delete unwanted chips.
+
+### Shorthand Input Refinements
+To accommodate longer phrases and improve readability:
+*   **Increased Height**: The shorthand box now has a `minHeight` (140pt on iPad) to show multiple lines of text.
+*   **Balanced Scaling**: The font size was slightly reduced (from 48pt to 38pt on iPad) to fit more words while maintaining high visibility.
+*   **Top Alignment**: Content now starts from the top-left, following standard text-entry conventions.

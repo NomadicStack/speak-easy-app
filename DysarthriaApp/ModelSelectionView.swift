@@ -12,6 +12,9 @@ struct ModelSelectionView: View {
     @State private var newContactName: String = ""
     @State private var newContactNumber: String = ""
     
+    @ObservedObject var chipManager = QuickChipManager.shared
+    @State private var newChipLabel: String = ""
+    
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.verticalSizeClass) var verticalSizeClass
     
@@ -98,7 +101,62 @@ struct ModelSelectionView: View {
                 .font(isPad ? .title3.bold() : .headline)
             }
             
-            // 3. Testing & Debug (Collapsible)
+            // 3. Quick Chips Management (Collapsible)
+            Section(header: Text("Smart Speak Shortcuts").font(isPad ? .title3.bold() : .caption.bold())) {
+                DisclosureGroup("Manage Quick Chips") {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Edit your shorthand shortcuts (e.g. '💧 thirsty')")
+                            .font(isPad ? .headline : .caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        ForEach(chipManager.chips) { chip in
+                            HStack {
+                                TextField("Shortcut Label", text: Binding(
+                                    get: { chip.label },
+                                    set: { newValue in
+                                        if let index = chipManager.chips.firstIndex(where: { $0.id == chip.id }) {
+                                            chipManager.updateChip(at: index, newLabel: newValue)
+                                        }
+                                    }
+                                ))
+                                .font(isPad ? .title3 : .body)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, isPad ? 10 : 5)
+                        }
+                        .onDelete { indexSet in
+                            chipManager.deleteChip(at: indexSet)
+                        }
+                        
+                        VStack(spacing: 15) {
+                            TextField("New Shortcut (e.g. '🍎 hungry')", text: $newChipLabel)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
+                            
+                            Button(action: {
+                                guard !newChipLabel.isEmpty else { return }
+                                chipManager.addChip(label: newChipLabel)
+                                newChipLabel = ""
+                            }) {
+                                Label("Add Shortcut", systemImage: "plus.circle.fill")
+                                    .font(isPad ? .title3.bold() : .headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(isPad ? 15 : 10)
+                                    .background(Color.purple.opacity(0.1))
+                                    .foregroundColor(.purple)
+                                    .cornerRadius(12)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 10)
+                }
+                .font(isPad ? .title3.bold() : .headline)
+                .accentColor(.purple)
+            }
+            
+            // 4. Testing & Debug (Collapsible)
             Section(header: Text("Advanced").font(isPad ? .title3.bold() : .caption.bold())) {
                 DisclosureGroup("Developer Settings") {
                     VStack(alignment: .leading, spacing: 25) {

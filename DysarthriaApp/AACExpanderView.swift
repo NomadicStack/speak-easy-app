@@ -4,6 +4,7 @@ struct AACExpanderView: View {
     @ObservedObject var viewModel: AACViewModel
     @ObservedObject var transcriptionVM: TranscriptionViewModel
     @ObservedObject var audioRecorder: AudioRecorder
+    @ObservedObject var chipManager = QuickChipManager.shared
     @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -13,8 +14,6 @@ struct AACExpanderView: View {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
     }
     var isLandscape: Bool = false
-    
-    let quickChips = ["💧 thirsty", "🍕 hungry", "🚌 bus late", "👨‍⚕️ doc appt", "🔋 low battery", "🚪 open door"]
     
     @State private var isShowingModelSelection = false
     
@@ -101,10 +100,10 @@ struct AACExpanderView: View {
             
             ZStack(alignment: .topTrailing) {
                 Text(viewModel.shorthandInput.isEmpty ? "Speak your shorthand..." : viewModel.shorthandInput)
-                    .font(.system(size: isPad ? 48 : 28, weight: .bold))
+                    .font(.system(size: isPad ? 38 : 24, weight: .bold))
                     .foregroundColor(viewModel.shorthandInput.isEmpty ? .gray.opacity(0.5) : .primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(isPad ? 40 : 20)
+                    .frame(maxWidth: .infinity, minHeight: isPad ? 140 : 80, alignment: .topLeading)
+                    .padding(isPad ? 30 : 15)
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(24)
                 
@@ -125,18 +124,23 @@ struct AACExpanderView: View {
         Group {
             if isPad && isLandscape {
                 // Wrapping Flow-like layout using LazyVGrid for iPad Landscape
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 15)], spacing: 15) {
-                    ForEach(quickChips, id: \.self) { chip in
-                        chipButton(chip)
+                // Wrap in ScrollView to prevent pushing buttons down
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 15)], spacing: 15) {
+                        ForEach(chipManager.chips) { chip in
+                            chipButton(chip.label)
+                        }
                     }
+                    .padding(.vertical, 5)
                 }
                 .padding(.horizontal)
+                .frame(maxHeight: .infinity) // Allow it to take available space
             } else {
                 // Standard Horizontal Scroll for Portrait/iPhone
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 15) {
-                        ForEach(quickChips, id: \.self) { chip in
-                            chipButton(chip)
+                        ForEach(chipManager.chips) { chip in
+                            chipButton(chip.label)
                         }
                     }
                     .padding(.horizontal)

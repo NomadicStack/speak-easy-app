@@ -226,23 +226,19 @@ struct AACExpanderView: View {
     
     private func optionButton(_ option: String) -> some View {
         ZStack(alignment: .bottomTrailing) {
-            // Main text area triggers speech
-            Button(action: {
-                viewModel.speak(option)
-            }) {
-                HStack {
-                    Text(option)
-                        .font(.system(size: isPad ? 28 : 18, weight: .bold))
-                        .multilineTextAlignment(.leading)
-                        .foregroundColor(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.trailing, isPad ? 110 : 80) // Space for corner buttons
-                    
-                    Spacer()
-                }
-                .padding(isPad ? 30 : 20)
-                .frame(maxWidth: .infinity, minHeight: isPad ? 100 : 80, alignment: .leading)
+            // Main text area
+            HStack {
+                Text(option)
+                    .font(.system(size: isPad ? 28 : 18, weight: .bold))
+                    .multilineTextAlignment(.leading)
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.trailing, isPad ? 110 : 80) // Space for corner buttons
+                
+                Spacer()
             }
+            .padding(isPad ? 30 : 20)
+            .frame(maxWidth: .infinity, minHeight: isPad ? 100 : 80, alignment: .leading)
             
             // Compact Action buttons in the corner
             HStack(spacing: isPad ? 15 : 10) {

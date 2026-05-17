@@ -26,7 +26,7 @@ SpeakEasy is an accessible communication app designed for people with dysarthria
   2. If it's your first time, follow the prompts to download the **AI Brain** (Gemma 4).
   3. Speak a short phrase (e.g., "thirsty water") or tap a **Quick Chip** (e.g., 💧 thirsty).
   4. The AI will generate 3 options automatically.
-  5. **Listen:** Tap any sentence card or the **Purple Speaker** icon to hear it read aloud.
+  5. **Listen:** Tap the **Purple Speaker** icon to hear it read aloud.
   6. **Message:** Tap the **Blue Message** icon to send that sentence as a text.
 - **Refinement:** If the sentences aren't right, tap the microphone again and speak more words (e.g., "juice"). The app will combine them ("thirsty water juice") and try again.
 
@@ -99,7 +99,7 @@ You can help improve the app by sending transcription corrections to the develop
 
 ## 6. Accessibility Tips
 
-- **Large Targets:** Every button is oversized. In Smart Speak, you can tap anywhere on the large sentence cards to trigger speech.
+- **Large Targets:** Every button is oversized.
 - **High-Visibility Navigation:** The navigation tabs at the bottom are extra large with huge text. You don't need to be precise—just tap the general area.
 - **Voice-First:** In Smart Speak, the AI expansion starts automatically when you stop recording. No extra "Expand" button is needed.
 - **Branding:** Look for the **Blue** theme for Transcription and the **Purple** theme for AI features.

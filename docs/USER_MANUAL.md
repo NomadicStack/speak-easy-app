@@ -14,7 +14,10 @@ SpeakEasy is an accessible communication app designed for people with dysarthria
   3. Speak clearly. Tap the **Stop** button when finished.
   4. Your text will appear in large, easy-to-read font.
 - **Options:** You can **Copy** the text or **Share** it using the icons above the text area.
-- **Corrections:** If the transcription is wrong, tap the **"Incorrect?" (Pencil)** icon to manually edit and save the text.
+- **Corrections:** If the transcription is wrong, tap the **"Incorrect?" (Pencil)** icon to manually edit the text.
+  - **Save:** Tap **"Save Correction"** to store your changes and help improve the AI.
+  - **Cancel:** If you change your mind, tap **"Cancel"** to discard your edits and return to the original transcription.
+  - **Note:** In landscape mode, the app automatically hides other buttons and stats when you are editing to give you the most possible space to see your text while typing.
 
 ### Smart Speak (AI Sentences)
 - **What it is:** Take a short phrase (shorthand) and turn it into 3 natural sentences.

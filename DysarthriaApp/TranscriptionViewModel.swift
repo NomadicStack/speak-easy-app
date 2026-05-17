@@ -122,6 +122,13 @@ class TranscriptionViewModel: ObservableObject {
         }
     }
     
+    func cancelEditing() {
+        if !originalTranscription.isEmpty {
+            transcribedText = originalTranscription
+        }
+        isEditing = false
+    }
+    
     private func saveToLogs(_ correction: TranscriptionCorrection) {
         var logs = getLogs()
         logs.append(correction)

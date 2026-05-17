@@ -145,44 +145,46 @@ struct ContentView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.bottom, isPad ? 140 : 100) // Increased space for larger tab bar
+                    .padding(.bottom, transcriptionVM.isEditing ? 0 : (isPad ? 140 : 100)) // Hide space for tab bar when editing
                     
                     // Custom Large Tab Bar
-                    VStack(spacing: 0) {
-                        Divider()
-                        HStack(spacing: 0) {
-                            // Transcribe Tab
-                            Button(action: { selectedTab = 0 }) {
-                                VStack(spacing: 10) {
-                                    Image(systemName: "waveform")
-                                        .font(.system(size: isPad ? 44 : 28, weight: .bold))
-                                    Text("Transcribe")
-                                        .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                    if !transcriptionVM.isEditing {
+                        VStack(spacing: 0) {
+                            Divider()
+                            HStack(spacing: 0) {
+                                // Transcribe Tab
+                                Button(action: { selectedTab = 0 }) {
+                                    VStack(spacing: 10) {
+                                        Image(systemName: "waveform")
+                                            .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                        Text("Transcribe")
+                                            .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, isPad ? 30 : 20)
+                                    .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
+                                    .foregroundColor(selectedTab == 0 ? .blue : .secondary)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, isPad ? 30 : 20)
-                                .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
-                                .foregroundColor(selectedTab == 0 ? .blue : .secondary)
-                            }
-                            
-                            // Smart Speak Tab
-                            Button(action: { selectedTab = 1 }) {
-                                VStack(spacing: 10) {
-                                    Image(systemName: "sparkles")
-                                        .font(.system(size: isPad ? 44 : 28, weight: .bold))
-                                    Text("Smart Speak")
-                                        .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                
+                                // Smart Speak Tab
+                                Button(action: { selectedTab = 1 }) {
+                                    VStack(spacing: 10) {
+                                        Image(systemName: "sparkles")
+                                            .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                        Text("Smart Speak")
+                                            .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, isPad ? 30 : 20)
+                                    .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
+                                    .foregroundColor(selectedTab == 1 ? .purple : .secondary)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, isPad ? 30 : 20)
-                                .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
-                                .foregroundColor(selectedTab == 1 ? .purple : .secondary)
                             }
+                            .background(.ultraThinMaterial)
                         }
-                        .background(.ultraThinMaterial)
                     }
                 }
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(.container, edges: .bottom)
             }
         }
         .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
@@ -229,9 +231,9 @@ struct TranscriptionView: View {
     @AppStorage("user_email") var userEmail: String = ""
 
     var body: some View {
-        VStack(spacing: isPad ? (isLandscape ? 20 : 50) : 30) {
+        VStack(spacing: transcriptionVM.isEditing ? (isLandscape ? 5 : 15) : (isPad ? (isLandscape ? 20 : 50) : 30)) {
             // Header with Branding (Hide in Rail mode to avoid duplication)
-            if !isLandscape || !isPad {
+            if (!isLandscape || !isPad) && !transcriptionVM.isEditing {
                 HStack {
                     Text("SpeakEasy")
                         .font(isPad ? .largeTitle.bold() : .title2.bold())
@@ -253,7 +255,7 @@ struct TranscriptionView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding()
-            } else {
+            } else if !transcriptionVM.isEditing {
                 DisclosureGroup("Advanced & Stats") {
                     VStack(alignment: .leading, spacing: 20) {
                         // Stats Section
@@ -359,7 +361,7 @@ struct TranscriptionView: View {
                 .accentColor(.secondary)
             }
 
-            if transcriptionVM.isModelLoaded {
+            if transcriptionVM.isModelLoaded && !transcriptionVM.isEditing {
                 HStack {
                     if !transcriptionVM.isEditing && transcriptionVM.transcribedText != "Press record to start." && !transcriptionVM.isTranscribing {
                         Button(action: {
@@ -415,11 +417,17 @@ struct TranscriptionView: View {
                     VStack(alignment: .trailing) {
                         TextEditor(text: $transcriptionVM.transcribedText)
                             .font(.system(size: isPad ? 48 : 28, weight: .bold))
-                            .frame(minHeight: isLandscape ? 150 : 300)
-                            .padding(isPad ? 40 : 20)
+                            .frame(minHeight: isLandscape ? 100 : 300)
+                            .padding(isLandscape ? 10 : (isPad ? 40 : 20))
                             .toolbar {
                                 ToolbarItemGroup(placement: .keyboard) {
+                                    Button("Cancel") {
+                                        transcriptionVM.cancelEditing()
+                                    }
+                                    .foregroundColor(.red)
+                                    
                                     Spacer()
+                                    
                                     Button("Save Correction") {
                                         transcriptionVM.saveCorrection()
                                     }
@@ -428,17 +436,32 @@ struct TranscriptionView: View {
                                 }
                             }
                         
-                        Button(action: {
-                            transcriptionVM.saveCorrection()
-                        }) {
-                            Text("Save Correction")
-                                .font(.title3.bold())
-                                .padding(20)
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(16)
+                        HStack(spacing: 20) {
+                            Button(action: {
+                                transcriptionVM.cancelEditing()
+                            }) {
+                                Text("Cancel")
+                                    .font(.title3.bold())
+                                    .padding(20)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.gray.opacity(0.2))
+                                    .foregroundColor(.primary)
+                                    .cornerRadius(16)
+                            }
+                            
+                            Button(action: {
+                                transcriptionVM.saveCorrection()
+                            }) {
+                                Text("Save Correction")
+                                    .font(.title3.bold())
+                                    .padding(20)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.green)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                            }
                         }
-                        .padding([.bottom, .trailing], 20)
+                        .padding([.bottom, .horizontal], 20)
                     }
                 } else {
                     Text(transcriptionVM.transcribedText)
@@ -450,8 +473,8 @@ struct TranscriptionView: View {
             .frame(maxWidth: 1000, maxHeight: .infinity)
             .layoutPriority(1)
             .background(Color.gray.opacity(0.1))
-            .cornerRadius(24)
-            .padding(.horizontal, isPad ? (isLandscape ? 40 : 80) : 20)
+            .cornerRadius(transcriptionVM.isEditing && isLandscape ? 0 : 24)
+            .padding(.horizontal, transcriptionVM.isEditing && isLandscape ? 0 : (isPad ? (isLandscape ? 40 : 80) : 20))
             
             if transcriptionVM.isTranscribing {
                 HStack(spacing: 20) {
@@ -461,72 +484,74 @@ struct TranscriptionView: View {
                         .font(isPad ? .title2 : .headline)
                         .foregroundColor(.secondary)
                 }
-            } else {
+            } else if !transcriptionVM.isEditing {
                 // Placeholder to keep UI from jumping when progress disappears
                 Text(" ").font(isPad ? .title2 : .headline).hidden()
             }
             
-            if !isLandscape || !isPad {
+            if (!isLandscape || !isPad) && !transcriptionVM.isEditing {
                 Spacer()
             }
             
             // Record and Clear Buttons
-            HStack(spacing: isPad ? 80 : 40) {
-                // Clear Button
-                Button(action: {
-                    transcriptionVM.clearTranscription()
-                }) {
-                    ZStack {
-                        let buttonSize: CGFloat = isPad ? 120 : 80
-                        Circle()
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: buttonSize, height: buttonSize)
-                            .shadow(radius: isPad ? 8 : 4)
-                        
-                        Image(systemName: "trash")
-                            .font(.system(size: buttonSize * 0.45, weight: .bold))
-                            .foregroundColor(.primary)
-                    }
-                }
-                .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
-                .opacity((transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing) ? 0.3 : 1.0)
-                
-                // Record Button
-                Button(action: {
-                    if audioRecorder.isRecording {
-                        if let url = audioRecorder.stopRecording() {
-                            transcriptionVM.transcribeAudio(at: url)
-                        }
-                    } else {
-                        audioRecorder.startRecording()
-                    }
-                }) {
-                    ZStack {
-                        // Larger button size on iPads
-                        let buttonSize: CGFloat = isPad ? 140 : 90
-                        
-                        Circle()
-                            .fill(audioRecorder.isRecording ? Color.red : Color.blue)
-                            .frame(width: buttonSize, height: buttonSize)
-                            .shadow(radius: isPad ? 15 : 10)
-                        
-                        if audioRecorder.isRecording {
-                            // Stop square
-                            RoundedRectangle(cornerRadius: isPad ? 12 : 8)
-                                .fill(Color.white)
-                                .frame(width: buttonSize * 0.35, height: buttonSize * 0.35)
-                        } else {
-                            // Microphone icon
-                            Image(systemName: "mic.fill")
+            if !transcriptionVM.isEditing {
+                HStack(spacing: isPad ? 80 : 40) {
+                    // Clear Button
+                    Button(action: {
+                        transcriptionVM.clearTranscription()
+                    }) {
+                        ZStack {
+                            let buttonSize: CGFloat = isPad ? 120 : 80
+                            Circle()
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(width: buttonSize, height: buttonSize)
+                                .shadow(radius: isPad ? 8 : 4)
+                            
+                            Image(systemName: "trash")
                                 .font(.system(size: buttonSize * 0.45, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                         }
                     }
+                    .disabled(transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing)
+                    .opacity((transcriptionVM.transcribedText == "Press record to start." || transcriptionVM.isTranscribing) ? 0.3 : 1.0)
+                    
+                    // Record Button
+                    Button(action: {
+                        if audioRecorder.isRecording {
+                            if let url = audioRecorder.stopRecording() {
+                                transcriptionVM.transcribeAudio(at: url)
+                            }
+                        } else {
+                            audioRecorder.startRecording()
+                        }
+                    }) {
+                        ZStack {
+                            // Larger button size on iPads
+                            let buttonSize: CGFloat = isPad ? 140 : 90
+                            
+                            Circle()
+                                .fill(audioRecorder.isRecording ? Color.red : Color.blue)
+                                .frame(width: buttonSize, height: buttonSize)
+                                .shadow(radius: isPad ? 15 : 10)
+                            
+                            if audioRecorder.isRecording {
+                                // Stop square
+                                RoundedRectangle(cornerRadius: isPad ? 12 : 8)
+                                    .fill(Color.white)
+                                    .frame(width: buttonSize * 0.35, height: buttonSize * 0.35)
+                            } else {
+                                // Microphone icon
+                                Image(systemName: "mic.fill")
+                                    .font(.system(size: buttonSize * 0.45, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing)
+                    .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
                 }
-                .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing)
-                .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
+                .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 60)
             }
-            .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 60)
         }
     }
 }

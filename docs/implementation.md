@@ -164,3 +164,14 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
     *   **Shorthand Input**: Implemented orientation-aware height constraints (140pt in landscape for wrapping, 50-80pt in portrait for compactness).
 *   **Record Button Balancing**: Scaled down the primary record button (140pt on iPad, 90pt on iPhone) to reclaim vertical space while maintaining accessibility standards.
 *   **Layout Stability**: Applied `maxHeight: .infinity` and strategic `Spacer` management to ensure UI components remain visible and properly positioned on initial load and empty states.
+
+### 11. Keyboard Handling & Landscape Correction Optimizations (May 2026)
+*   **Problem**: In landscape mode, the software keyboard previously obscured the transcription text area during editing, making it impossible for users to see what they were typing.
+*   **Focus Editing Mode**:
+    *   **UI Culling**: Implemented dynamic visibility logic to hide the branding header, navigation tabs, statistics, and all primary recording/action buttons when `transcriptionVM.isEditing` is true.
+    *   **Vertical Optimization**: Reduced spacing and removed the bottom padding (previously 100-140pt) during editing.
+    *   **Safe Area Refinement**: Changed the view's safe area behavior to `.ignoresSafeArea(.container, edges: .bottom)`. This allows the background to bleed into the bottom safe area during normal usage while forcing the UI to respect the **Keyboard Safe Area** during editing, pushing the content up correctly.
+*   **Cancel & Recovery Path**:
+    *   **ViewModel Integration**: Added `cancelEditing()` to `TranscriptionViewModel` to restore the `originalTranscription` text and exit the edit state.
+    *   **Dual-Action Controls**: Added "Cancel" buttons to both the keyboard toolbar and the bottom of the editing view (side-by-side with "Save Correction") to provide a safe exit path for users.
+    *   **Landscape Visual Density**: Removed container padding and corner radii during landscape editing to provide a distraction-free, full-width "Focus Mode" for text entry.

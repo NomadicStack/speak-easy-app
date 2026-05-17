@@ -100,3 +100,21 @@ To accommodate longer phrases and improve readability:
 *   **Increased Height**: The shorthand box now has a `minHeight` (140pt on iPad) to show multiple lines of text.
 *   **Balanced Scaling**: The font size was slightly reduced (from 48pt to 38pt on iPad) to fit more words while maintaining high visibility.
 *   **Top Alignment**: Content now starts from the top-left, following standard text-entry conventions.
+
+## 6. Keyboard Handling & Landscape Editing
+
+To prevent the software keyboard from obscuring critical content in landscape mode, especially on smaller iPads or iPhones, a "Focus Editing" mode was implemented for transcriptions.
+
+### Intelligent UI Culling
+When the user enters editing mode (`transcriptionVM.isEditing == true`), the UI dynamically Cullls non-essential elements:
+*   **Hidden Elements**: Branding headers, navigation tabs (bottom bar), statistics sections, and primary action buttons (Record/Clear/Copy/Share).
+*   **Vertical Space Reclamation**: The 100-140pt bottom padding reserved for the navigation bar is reduced to 0pt.
+*   **Minimized Spacing**: Vertical spacing between remaining elements is reduced to 5pt.
+
+### Safe Area & Keyboard Respect
+*   **Safe Area Logic**: Transitioned to `.ignoresSafeArea(.container, edges: .bottom)`. This ensures that while the background/tab bar can bleed into the bottom safe area normally, the **Keyboard Safe Area** is explicitly respected, forcing the ScrollView and TextEditor to move up when the keyboard appears.
+*   **Layout Priority**: The ScrollView containing the text editor is given `.layoutPriority(1)` to ensure it consumes all available reclaimed space.
+
+### Cancel & Safety Controls
+*   **Explicit Cancel**: Added a prominent "Cancel" button to both the keyboard toolbar and the bottom action row. This allows users to exit the focused editing mode and restore the original transcription if they make a mistake during correction.
+*   **Visual Focus**: In landscape editing, the text area expands to the full width of the screen (removing horizontal margins and corner radii) to provide a typewriter-like focused experience.

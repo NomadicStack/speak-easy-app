@@ -5,78 +5,86 @@ struct OnboardingView: View {
     @State private var showModelSelection = false
     @ObservedObject var modelManager = ModelManager.shared
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+    
+    var isPad: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+    
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: isPad ? 60 : 30) {
             Spacer()
             
             // App Icon / Logo
             ZStack {
                 Circle()
                     .fill(Color.blue.opacity(0.1))
-                    .frame(width: 150, height: 150)
+                    .frame(width: isPad ? 250 : 150, height: isPad ? 250 : 150)
                 
                 Image(systemName: "sparkles")
-                    .font(.system(size: 80))
+                    .font(.system(size: isPad ? 150 : 80))
                     .foregroundColor(.blue)
             }
             
-            VStack(spacing: 15) {
+            VStack(spacing: 20) {
                 Text("Smart Speak")
-                    .font(.largeTitle.bold())
+                    .font(isPad ? .system(size: 60, weight: .bold) : .largeTitle.bold())
                     .multilineTextAlignment(.center)
                 
                 Text("To enable AI-powered variations and expansion, we need to download an on-device brain (Gemma 4).")
-                    .font(.title3)
+                    .font(isPad ? .title : .title3)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, isPad ? 80 : 40)
             }
             
             Spacer()
             
             if let selectedModel = modelManager.selectedModel, selectedModel.localURL != nil {
-                VStack(spacing: 15) {
+                VStack(spacing: 25) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
+                            .font(isPad ? .title : .headline)
                         Text("Brain Ready: \(selectedModel.name)")
-                            .font(.headline)
+                            .font(isPad ? .title : .headline)
                     }
                     
                     Button(action: {
                         hasCompletedOnboarding = true
                     }) {
                         Text("Enable Smart Speak")
-                            .font(.headline)
+                            .font(isPad ? .title2.bold() : .headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .padding()
+                            .padding(isPad ? 30 : 16)
                             .background(Color.blue)
-                            .cornerRadius(16)
+                            .cornerRadius(20)
                     }
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, isPad ? 100 : 40)
                 }
             } else {
                 Button(action: {
                     showModelSelection = true
                 }) {
                     Text("Select & Download AI Brain")
-                        .font(.headline)
+                        .font(isPad ? .title2.bold() : .headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(isPad ? 30 : 16)
                         .background(Color.blue)
-                        .cornerRadius(16)
+                        .cornerRadius(20)
                 }
-                .padding(.horizontal, 40)
+                .padding(.horizontal, isPad ? 100 : 40)
             }
             
             Text("The model is 2.6GB. You can still use basic transcription while it downloads.")
-                .font(.caption)
+                .font(isPad ? .title3 : .caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 40)
                 .multilineTextAlignment(.center)
-                .padding(.bottom, 40)
+                .padding(.bottom, isPad ? 60 : 40)
         }
         .sheet(isPresented: $showModelSelection) {
             NavigationView {

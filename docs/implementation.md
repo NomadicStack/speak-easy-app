@@ -107,15 +107,19 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
     *   Upgraded the "Model Ready" status message to a professional, pill-shaped badge with a checkmark icon and high-contrast styling.
 
 ### 4. Feedback & Fine-tuning Loop (Phase 1.5)
-*   **Correction Logic:** Implemented an "Incorrect?" feature that allows users to manually fix transcriptions.
+*   **Correction Logic:** Implemented an \"Incorrect?\" feature that allows users to manually fix transcriptions.
 *   **Data Collection:**
     *   **Audio Storage:** Permanent copies of audio files associated with corrections are saved to the `Documents/FeedbackAudio` directory.
     *   **Log Persistence:** Metadata (timestamp, original text, corrected text, audio filename) is stored as a JSON log in `UserDefaults`.
-*   **Accuracy Statistics:** Added real-time tracking of "Total Transcriptions" vs. "Total Corrections" to provide an empirical measure of model performance.
-*   **Reporting:** Integrated a direct **Email Reporting System** using `MessageUI`.
+*   **Accuracy Statistics:** Added real-time tracking of \"Total Transcriptions\" vs. \"Total Corrections\" to provide an empirical measure of model performance.
+*   **Reporting & Configuration:** 
     *   **Direct Mail:** Uses a SwiftUI-wrapped `MFMailComposeViewController` (`MailView.swift`) to open a pre-filled email draft.
-    *   **Audio Attachments:** Automatically attaches all archived `.wav` files from the `FeedbackAudio` directory to the email, providing the developer with a complete dataset (audio + ground truth text) for fine-tuning.
-    *   **Smart Fallback:** If Mail is not configured, the app falls back to a standard `UIActivityViewController` (Share Sheet) that includes both the text report and the audio files.
+    *   **Customizable Recipient:** The feedback destination is now configurable via a \"Feedback Configuration\" section in the UI (persisted via `@AppStorage`).
+    *   **User Identity:** Includes the user's optional email address in the report body for developer follow-up and sets it as the `preferredSendingEmailAddress` in the mail composer.
+*   **Storage Management & Cleanup:**
+    *   **Automated Cleanup:** Implemented `clearFeedbackData()` which is triggered automatically after a successful email send (`.sent` result).
+    *   **Resource Reclamation:** This method deletes all archived `.wav` files and clears the correction logs, preventing duplicate reports and ensuring the app doesn't consume excessive disk space over time.
+
 
 ### 5. Transcription Pipeline Stability (May 2026)
 *   **File Collision Avoidance:** Refactored `AudioRecorder` to generate unique filenames using UUIDs.
@@ -136,3 +140,38 @@ The custom fine-tuned weights for the Dysarthria model have been successfully in
     *   **Record Button:** Increased to 100pt (iPhone) / 140pt (iPad).
     *   **Clear Button:** Sized at 70pt (iPhone) / 100pt (iPad) for easy thumb access during rapid usage cycles.
 *   **Visual Feedback:** The button bar utilizes dynamic opacity to indicate state (e.g., dimming the Clear button when the text is empty or transcription is in progress).
+
+### 8. iPad Landscape & Accessibility Scaling (May 2026)
+*   **Adaptive Sidebar:** Implemented a navigation rail for iPad in landscape mode, maximizing screen utility.
+*   **Two-Column AAC View:** Redesigned the "Smart Speak" interface for iPad landscape, separating inputs and results into two distinct vertical columns.
+*   **Wrapping Quick Chips:** Upgraded the "Quick Chips" from a scrollable list to a wrapping grid layout (`LazyVGrid`) in landscape mode to improve 1-tap accessibility.
+*   **Universal UI Scaling:** Dramatically increased font sizes (up to 72pt) and button sizes (up to 180pt) across all views to meet the needs of users with motor or visual impairments.
+*   **Orientation-Aware UI:** Leveraged `GeometryReader` alongside size classes to provide a seamless transition between portrait and landscape layouts.
+
+### 9. Dynamic Quick Chips & Input Refinement (May 2026)
+*   **QuickChipManager:** Implemented a new persistence layer for AAC shortcuts using `UserDefaults` and `JSONEncoder`.
+*   **Dynamic Settings UI:** Added a dedicated management section in the Settings view for adding, editing, and deleting Quick Chips.
+*   **Scrollable Chip Grid:** Wrapped the landscape chip grid in a `ScrollView` to prevent layout overflow when many chips are added.
+*   **Shorthand Area Refinement:** Increased the height of the AAC shorthand box and optimized font sizes to balance visibility with content density.
+
+### 10. UI Polish & Component Optimization (May 2026)
+*   **Collapsible iPad Sidebar**: Refactored the iPad landscape navigation rail to be icon-only by default (100pt width), expanding to 220pt with full labels via a dedicated menu toggle. Uses `.spring()` animations for smooth state transitions.
+*   **Quick Chip "Communication Board"**: Replaced capsule-style chips with a large, rectangular tile grid. Features prominent emojis and bold text, providing a "soundboard" experience with large, accessible hit targets.
+*   **Explicit Deletion**: Replaced the "swipe-to-delete" gesture for Quick Chips with a visible **Red Trash Icon** next to each entry in the Settings view to improve discoverability.
+*   **Information Density Refinement**:
+    *   **Quick Chips**: Tiles use a `LazyVGrid` across all orientations, eliminating unintuitive horizontal scrolling.
+    *   **Generated Options**: Redesigned sentence cards with compact, corner-aligned **Speak** and **Message** circular buttons, maximizing space for text.
+    *   **Shorthand Input**: Implemented orientation-aware height constraints (140pt in landscape for wrapping, 50-80pt in portrait for compactness).
+*   **Record Button Balancing**: Scaled down the primary record button (140pt on iPad, 90pt on iPhone) to reclaim vertical space while maintaining accessibility standards.
+*   **Layout Stability**: Applied `maxHeight: .infinity` and strategic `Spacer` management to ensure UI components remain visible and properly positioned on initial load and empty states.
+
+### 11. Keyboard Handling & Landscape Correction Optimizations (May 2026)
+*   **Problem**: In landscape mode, the software keyboard previously obscured the transcription text area during editing, making it impossible for users to see what they were typing.
+*   **Focus Editing Mode**:
+    *   **UI Culling**: Implemented dynamic visibility logic to hide the branding header, navigation tabs, statistics, and all primary recording/action buttons when `transcriptionVM.isEditing` is true.
+    *   **Vertical Optimization**: Reduced spacing and removed the bottom padding (previously 100-140pt) during editing.
+    *   **Safe Area Refinement**: Changed the view's safe area behavior to `.ignoresSafeArea(.container, edges: .bottom)`. This allows the background to bleed into the bottom safe area during normal usage while forcing the UI to respect the **Keyboard Safe Area** during editing, pushing the content up correctly.
+*   **Cancel & Recovery Path**:
+    *   **ViewModel Integration**: Added `cancelEditing()` to `TranscriptionViewModel` to restore the `originalTranscription` text and exit the edit state.
+    *   **Dual-Action Controls**: Added "Cancel" buttons to both the keyboard toolbar and the bottom of the editing view (side-by-side with "Save Correction") to provide a safe exit path for users.
+    *   **Landscape Visual Density**: Removed container padding and corner radii during landscape editing to provide a distraction-free, full-width "Focus Mode" for text entry.

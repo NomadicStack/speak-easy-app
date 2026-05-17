@@ -13,7 +13,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9724633E2FA8105900E244EE /* DysarthriaApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DysarthriaApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9724633E2FA8105900E244EE /* SpeakEasy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpeakEasy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		972463732FA8377500E244EE /* MailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -50,7 +50,7 @@
 		9724633F2FA8105900E244EE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9724633E2FA8105900E244EE /* DysarthriaApp.app */,
+				9724633E2FA8105900E244EE /* SpeakEasy.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,7 +80,7 @@
 				972463812FA8137A00E244EE /* LiteRTLMSwift */,
 			);
 			productName = DysarthriaApp;
-			productReference = 9724633E2FA8105900E244EE /* DysarthriaApp.app */;
+			productReference = 9724633E2FA8105900E244EE /* SpeakEasy.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -295,6 +295,7 @@
 				DEVELOPMENT_TEAM = 8VZ8M4A64U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SpeakEasy;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record and transcribe dysarthiric speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -306,8 +307,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.my.DysarthriaApp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.my.SpeakEasy2;
+				PRODUCT_NAME = SpeakEasy;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -329,6 +330,7 @@
 				DEVELOPMENT_TEAM = 8VZ8M4A64U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SpeakEasy;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record and transcribe dysarthiric speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -340,8 +342,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.my.DysarthriaApp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.my.SpeakEasy2;
+				PRODUCT_NAME = SpeakEasy;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;

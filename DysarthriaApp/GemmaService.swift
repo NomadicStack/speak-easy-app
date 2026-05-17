@@ -78,13 +78,19 @@ class GemmaService: ObservableObject {
 
         # CORE RULES
         1. PHONETIC DECODING: If a word looks wrong, think of what it SOUNDS like.
-        2. BE THE VOICE: Write in the first person ("I", "Me", "My").
-        3. NO META-TALK: Output ONLY the 3 sentences as a numbered list. No preamble.
+        2. EMOJI INTERPRETATION: Emojis are high-signal intent markers. Interpret them literally (e.g., "🏀" = basketball/playing, "🍕" = hungry/pizza). If an emoji is present, prioritize its meaning.
+        3. BE THE VOICE: Write in the first person ("I", "Me", "My").
+        4. NO META-TALK: Output ONLY the 3 sentences as a numbered list. No preamble.
 
         # OUTPUT STYLE (Provide 3 distinct options)
         1. DIRECT: Short, high-speed, urgent (e.g., "I need water.")
         2. NATURAL: A complete, polite sentence (e.g., "Could you please bring me some water?")
         3. MESSAGING: Optimized for SMS, using contact names if relevant (e.g., "Hey Dad, could you bring me some water?")
+
+        # EXAMPLES
+        - Input: "🏀" -> Output: 1. I want to play basketball. 2. Can we go play some basketball? 3. Is it time for basketball?
+        - Input: "wada" -> Output: 1. I need water. 2. Could you please bring me some water? 3. Hey Dad, can I have some water?
+        - Input: "🍕 mom" -> Output: 1. Mom, I'm hungry for pizza. 2. Mom, can we order pizza? 3. Hey Mom, let's have pizza for dinner.
 
         Input: "\(shorthand)"
         <turn|>

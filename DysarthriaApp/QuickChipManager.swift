@@ -56,3 +56,16 @@ class QuickChipManager: ObservableObject {
         chips[index].label = newLabel
     }
 }
+
+extension Character {
+    var isEmoji: Bool {
+        guard let scalar = unicodeScalars.first else { return false }
+        return scalar.properties.isEmoji && (scalar.value > 0x238C || scalar.properties.isEmojiPresentation)
+    }
+}
+
+extension String {
+    var startsWithEmoji: Bool {
+        first?.isEmoji ?? false
+    }
+}

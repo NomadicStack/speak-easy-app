@@ -167,23 +167,23 @@ struct AACExpanderView: View {
     
     private func chipTile(_ chip: String) -> some View {
         let components = chip.components(separatedBy: " ")
-        let emoji = components.first ?? ""
-        let text = components.count > 1 ? components.dropFirst().joined(separator: " ") : ""
+        let first = components.first ?? ""
+        let rest = components.count > 1 ? components.dropFirst().joined(separator: " ") : ""
         
         return Button(action: {
             if viewModel.shorthandInput.isEmpty {
-                viewModel.shorthandInput = text.isEmpty ? chip : text
+                viewModel.shorthandInput = chip
             } else {
-                viewModel.shorthandInput += " " + (text.isEmpty ? chip : text)
+                viewModel.shorthandInput += " " + chip
             }
             Task { await viewModel.expand() }
         }) {
             VStack(spacing: isPad ? 8 : 4) {
-                Text(emoji)
+                Text(first)
                     .font(.system(size: isPad ? 44 : 28))
                 
-                if !text.isEmpty {
-                    Text(text)
+                if !rest.isEmpty {
+                    Text(rest)
                         .font(.system(size: isPad ? 16 : 12, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)

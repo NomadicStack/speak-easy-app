@@ -56,4 +56,4 @@ SpeakEasy bundles custom AI models directly within the app to guarantee offline 
 
 ## License
 
-[MIT License](LICENSE)
+[Non-Commercial License](LICENSE)

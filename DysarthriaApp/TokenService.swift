@@ -21,7 +21,7 @@ public final class TokenService: NSObject, ObservableObject {
     // MARK: - Configuration
     // Developer: Replace this with your actual deployed Firebase Cloud Function URL.
     // e.g. "https://downloadmodel-xxxxxx-uc.a.run.app"
-    private let backendUrlString = "https://downloadmodel-797af2ce-a4ff-4f1c-ba2d-635e55be0748.cloudfunctions.net/downloadModel"
+    private let backendUrlString = "https://downloadmodel-kel6gzqjiq-uc.a.run.app"
     
     private var downloadSession: URLSession?
     private var downloadTask: URLSessionDownloadTask?

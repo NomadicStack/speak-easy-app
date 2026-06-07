@@ -143,3 +143,27 @@ Under Option A, we ship the app without any pre-bundled WhisperKit model.
 
 - To temporarily deactivate access, change `token_status` in Firestore to `"revoked"` or `"disabled"`.
 - To completely delete a user's local model cache and credentials, the caregiver/user can tap **Deactivate and Delete Model Data** at the bottom of the active token screen inside the app. This deletes the token from the Keychain and purges the downloaded directory from disk.
+
+---
+
+## 7. Production Model Provisioning & Token Creation Walkthrough
+
+Follow these visual steps in the Firebase Console to issue a new model to a user:
+
+### Step A: Upload the ZIP Model
+1. Go to the [Firebase Storage Console](https://console.firebase.google.com/project/speak-easy-6eb6e/storage).
+2. Inside your default storage bucket, click **Create folder** and name it `models`.
+3. Enter the `models` folder.
+4. Click **Upload file** and select the custom user's Whisper model ZIP archive (e.g. `john_doe_whisper.zip`).
+5. Once uploaded, the file path is: `models/john_doe_whisper.zip`.
+
+### Step B: Create the Token in Firestore
+1. Go to the [Firestore Database Console](https://console.firebase.google.com/project/speak-easy-6eb6e/firestore).
+2. If the collection does not exist yet, click **Start collection** and name it `paid_tokens`.
+3. Click **Add document** and set:
+   * **Document ID**: `tkn_live_doe789` *(This is the token string you will email to the patient).*
+   * **Fields**:
+     * `token_status` (String): `active`
+     * `model_storage_path` (String): `models/john_doe_whisper.zip` *(Relative or full gs:// paths are both supported).*
+     * `model_name` (String): `John Doe Voice Profile` *(This friendly name displays in the app on download completion).*
+

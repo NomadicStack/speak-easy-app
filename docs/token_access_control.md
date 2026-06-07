@@ -167,3 +167,45 @@ Follow these visual steps in the Firebase Console to issue a new model to a user
      * `model_storage_path` (String): `models/john_doe_whisper.zip` *(Relative or full gs:// paths are both supported).*
      * `model_name` (String): `John Doe Voice Profile` *(This friendly name displays in the app on download completion).*
 
+---
+
+## 8. Future Maintenance & Operations Guide
+
+This section outlines standard procedures for maintaining the access control system and performing updates.
+
+### A. Releasing Voice Model Updates (v2, v3, etc.)
+If a patient's model is retrained and a new version needs to be deployed:
+1. Package and upload the new ZIP file to Cloud Storage at a new path (e.g., `models/john_doe_whisper_v2.zip`).
+2. Open the Firestore document for the user's token and update:
+   * `model_storage_path` to the new path (`models/john_doe_whisper_v2.zip`).
+   * `model_name` to reflect the new version (e.g. `John Doe Profile v2`).
+3. To force the user's iPad to fetch the new model:
+   * Ask the user/caregiver to tap **Deactivate and Delete Model Data** at the bottom of the active token screen.
+   * Re-enter the same token. The app will immediately pull and unzip the new `v2` model.
+
+### B. Revoking Subscriber Access
+* To disable access, set `token_status` in the Firestore document to `"revoked"` or `"inactive"`.
+* **Note**: Because the app runs offline-first for accessibility safety, the local model remains functional on the user's device even after a token is revoked. However, the user will not be able to re-download or activate the model on a new device.
+
+### C. Updating Firebase Cloud Function Packages
+To keep the backend secure and upgrade dependencies:
+1. Navigate to the functions directory:
+   ```bash
+   cd backend/functions
+   ```
+2. Update packages to the latest compatible versions:
+   ```bash
+   npm install --save firebase-functions@latest firebase-admin@latest
+   ```
+3. Redeploy the functions to production:
+   ```bash
+   firebase deploy --only functions --force
+   ```
+
+### D. Billing Alerts & Cost Monitoring
+To ensure your production costs stay within the free tier limits:
+1. Go to the [Google Cloud Billing Console](https://console.cloud.google.com/billing).
+2. Go to **Budgets & Alerts** and click **Create Budget**.
+3. Set a threshold budget (e.g., $10.00/month) and configure email notifications to alert you if the resource downloads or Firestore reads spike abnormally.
+
+

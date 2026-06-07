@@ -82,3 +82,15 @@ model_backups/
 *.swp
 *.lock
 .env
+
+# Node.js and Firebase
+**/node_modules/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.eslintcache
+.firebase/
+**/*-debug.log
+**/functions/.runtimeconfig.json
+**/functions/*.local
+**/functions/*secret.local

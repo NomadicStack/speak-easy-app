@@ -36,6 +36,7 @@ graph TD
         B --> D(AACExpanderView)
         B --> E(OnboardingView)
         B --> M(ModelSelectionView)
+        B --> TE(TokenEntryView)
     end
     
     %% ViewModels
@@ -60,15 +61,19 @@ graph TD
         G -.-> P[ContactManager]
         M --> Q[ModelManager]
         J -.-> Q
+        
+        TE -.-> TS[TokenService]
+        F -.-> TS
+        TS --> KH[KeychainHelper]
     end
 
     classDef ui fill:#e3f2fd,stroke:#1e88e5,stroke-width:2px,color:#000
     classDef vm fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:#000
     classDef svc fill:#fff3e0,stroke:#fb8c00,stroke-width:2px,color:#000
     
-    class B,C,D,E,M ui
+    class B,C,D,E,M,TE ui
     class F,G,H vm
-    class I,J,K,L,N,O,P,Q svc
+    class I,J,K,L,N,O,P,Q,TS,KH svc
 ```
 
 ---
@@ -76,16 +81,19 @@ graph TD
 ## Component Breakdown
 
 ### 1. ViewModels (State Management)
-*   **`TranscriptionViewModel.swift`**: Handles the WhisperKit audio transcription pipeline. It receives audio URLs, loads the Whisper model into the Neural Engine (ANE), and processes speech into text.
+*   **`TranscriptionViewModel.swift`**: Handles the WhisperKit audio transcription pipeline. It is integrated with the `TokenService` to only load WhisperKit when a valid custom model directory exists in `Documents/WhisperModels/`. It receives audio URLs, loads the Whisper model into the Neural Engine (ANE), and processes speech into text.
 *   **`AACViewModel.swift`**: Manages the state for the "Smart Speak" tab. It takes shorthand text (from speech or Quick Chips), prepares prompts, and manages the generation of polished sentences.
 *   **`AudioRecorder.swift`**: Handles microphone permissions, starting/stopping recordings, and saving temporary audio files for WhisperKit to process.
 
 ### 2. The Views
-*   **`ContentView.swift`**: The root container. It listens for changes (like when `transcriptionVM` finishes transcribing) and routes the new text to the `AACViewModel` if the user is on the Smart Speak tab (Line 213).
+*   **`ContentView.swift`**: The root container. It listens for changes and coordinates tab routing. It gates the Transcribe tab: if the custom WhisperKit model is not downloaded, it renders `TokenEntryView` instead of `TranscriptionView`.
 *   **`TranscriptionView.swift`**: The UI for the standard dictation feature.
 *   **`AACExpanderView.swift`**: The UI for the AI expander. It displays the shorthand input, the generated options, and the Quick Chips.
+*   **`TokenEntryView.swift`**: The access control page. It prompts the caregiver or patient to enter their paid subscription token, shows active download and unzipping progress, and handles model deactivation.
 
 ### 3. Services and Managers
+*   **`TokenService.swift`**: A central service managing paid model credentials. It communicates with the Firebase Cloud Function, handles chunked model downloads, tracks progress, and unzips archives utilizing `ZIPFoundation`.
+*   **`KeychainHelper.swift`**: Wraps the iOS Security Keychain APIs to safely persist the validation token offline.
 *   **`GemmaService.swift`**: The bridge to the local LLM. It initializes the `LiteRTLMEngine`, constructs the highly-specific "Speech-to-Intent" prompt with the user's name and contacts, and generates the 3 communication options.
 *   **`ModelManager.swift`**: Handles fetching and selecting the appropriate Gemma models (e.g., Gemma 4 2B INT4) for local inference.
 *   **`TextToSpeechService.swift`**: Utilizes iOS's `AVSpeechSynthesizer` to speak the generated sentences aloud.

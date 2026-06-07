@@ -113,7 +113,11 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            if transcriptionVM.hasCustomModel {
+                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            } else {
+                                TokenEntryView()
+                            }
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
@@ -133,7 +137,11 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            if transcriptionVM.hasCustomModel {
+                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            } else {
+                                TokenEntryView()
+                            }
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {

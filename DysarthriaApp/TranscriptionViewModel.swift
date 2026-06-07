@@ -25,39 +25,55 @@ class TranscriptionViewModel: ObservableObject {
     @Published var originalTranscription: String = ""
     @Published var isEditing: Bool = false
     
+    @Published var hasCustomModel: Bool = false
+    
     private var whisperKit: WhisperKit?
     private let correctionsKey = "saved_corrections"
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
         self.totalTranscriptions = UserDefaults.standard.integer(forKey: "total_transcriptions")
         self.totalCorrections = UserDefaults.standard.integer(forKey: "total_corrections")
         
-        Task {
-            await initializeWhisperKit()
-        }
+        // Dynamic Access Control: Listen to TokenService changes
+        TokenService.shared.$status
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                guard let self = self else { return }
+                switch status {
+                case .active(let modelName):
+                    self.hasCustomModel = true
+                    self.modelLoadingMessage = "Custom model ready (\(modelName))"
+                    // Proactively load the model if it hasn't been loaded yet
+                    if !self.isModelLoaded && !self.isTranscribing {
+                        Task {
+                            await self.initializeWhisperKit()
+                        }
+                    }
+                default:
+                    self.hasCustomModel = false
+                    self.isModelLoaded = false
+                    self.whisperKit = nil
+                    self.modelLoadingMessage = "Speech model locked. Enter paid access token to activate."
+                }
+            }
+            .store(in: &cancellables)
     }
     
     func initializeWhisperKit() async {
         do {
             self.modelLoadingMessage = "Loading custom dysarthria model..."
             
-            // Check if model components exist in the bundle root (flattened) or a subfolder
-            let bundleURL = Bundle.main.bundleURL
-            let modelFolder: String
-            let tokenizerURL: URL
-            let modelName: String
-            
-            if let customFolderURL = Bundle.main.url(forResource: "CustomDysarthriaModel", withExtension: nil) {
-                // Folder reference (retains structure)
-                modelName = "CustomDysarthriaModel"
-                modelFolder = customFolderURL.deletingLastPathComponent().path
-                tokenizerURL = customFolderURL
-            } else {
-                // Flattened group (files at root)
-                modelName = "" // Empty model name works with modelFolder pointing directly to components
-                modelFolder = bundleURL.path
-                tokenizerURL = bundleURL
+            // Resolve local Documents folder path to unzipped model files
+            guard let modelDirURL = TokenService.shared.findModelDirectory() else {
+                self.modelLoadingMessage = "Error: Custom voice model not found locally."
+                self.isModelLoaded = false
+                return
             }
+            
+            let modelName = modelDirURL.lastPathComponent
+            let modelFolder = modelDirURL.deletingLastPathComponent().path
+            let tokenizerURL = modelDirURL
             
             let config = WhisperKitConfig(
                 model: modelName,
@@ -73,10 +89,11 @@ class TranscriptionViewModel: ObservableObject {
             
             self.whisperKit = try await WhisperKit(config)
             self.isModelLoaded = true
-            self.modelLoadingMessage = "Model ready (Custom)"
+            self.modelLoadingMessage = "Model ready (\(modelName))"
         } catch {
-            self.modelLoadingMessage = "Error: \(error.localizedDescription)"
+            self.modelLoadingMessage = "Initialization error: \(error.localizedDescription)"
             print("WhisperKit initialization error: \(error)")
+            self.isModelLoaded = false
         }
     }
     

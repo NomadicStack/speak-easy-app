@@ -7,6 +7,7 @@ This document details the implementation of the selectable and downloadable mode
 - **Feature-Gated Onboarding:** AI model setup is exclusively triggered when accessing the "Smart Speak" tab, keeping the core transcription feature lightweight.
 - **On-Device Download:** Models are downloaded directly to the device and stored locally.
 - **Background Downloads:** Supports large file downloads using `URLSession` background configurations.
+- **Token-Gated Speech Models:** Speech models are not pre-bundled in the application package (Option A). The "Transcribe" tab is locked until a caregiver registers a subscription token, initiating a secure download of the user's unique fine-tuned Whisper model.
 - **Model Management:** Users can manage their "AI Brain" via a purple brain icon located in the Smart Speak tab.
 - **Simulated AI Mode:** A developer toggle in the Model Selection UI that bypasses real LLM loading for testing on resource-constrained environments (e.g., Mac Simulator).
 - **Caregiver Messaging:** Allows users to send AI-expanded sentences directly to a caregiver via SMS.
@@ -21,11 +22,20 @@ A central hub for managing the user's contact list, handling persistence via `Us
 A specialized service that wraps `MFMessageComposeViewController` to handle system-level text messaging safely on iOS devices.
 
 ### `ModelManager.swift`
-The central hub for all model-related operations:
+The central hub for all LLM (Gemma) model-related operations:
 - **Registry:** Maintains a list of supported models with metadata (name, size, URL).
 - **Download Engine:** Handles `URLSessionDownloadTask` with progress tracking.
 - **Storage:** Manages the lifecycle of model files in the app's `Documents/Models` directory.
 - **Persistence:** Stores the user's selected model ID in `UserDefaults`.
+
+### `TokenService.swift`
+The coordinator for user-specific custom Whisper ASR models:
+- **Backend Verification:** Communicates with secure HTTP Cloud Functions to validate user access tokens.
+- **Download Handler:** Downloads custom model zip folders from presigned Cloud Storage URLs.
+- **Extraction Engine:** Integrates `ZIPFoundation` to unzip and configure WhisperKit files locally inside `Documents/WhisperModels/`.
+
+### `KeychainHelper.swift`
+Maintains validation states offline by securely writing, reading, and clearing authorization tokens within the iOS Keychain.
 
 ### `ModelSelectionView.swift`
 A dedicated UI for managing models:

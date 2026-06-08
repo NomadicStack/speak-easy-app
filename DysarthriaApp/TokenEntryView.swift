@@ -84,7 +84,7 @@ public struct TokenEntryView: View {
     }
     
     // MARK: - Input State View
-    private var tokenInputView: View {
+    private var tokenInputView: some View {
         VStack(spacing: 20) {
             // Error Display if applicable
             if case .error(let errorMessage) = tokenService.status {
@@ -148,7 +148,7 @@ public struct TokenEntryView: View {
     }
     
     // MARK: - Validation & Unzipping Views
-    private func statusCardView(title: String, message: String, isProgress: Bool) -> View {
+    private func statusCardView(title: String, message: String, isProgress: Bool) -> some View {
         VStack(spacing: 20) {
             if isProgress {
                 ProgressView()
@@ -174,7 +174,7 @@ public struct TokenEntryView: View {
     }
     
     // MARK: - Downloading View
-    private func downloadingCardView(progress: Double) -> View {
+    private func downloadingCardView(progress: Double) -> some View {
         VStack(spacing: 20) {
             ProgressView(value: progress)
                 .progressViewStyle(LinearProgressViewStyle(tint: .blue))
@@ -219,7 +219,7 @@ public struct TokenEntryView: View {
     }
     
     // MARK: - Success Card View
-    private func successCardView(modelName: String) -> View {
+    private func successCardView(modelName: String) -> some View {
         VStack(spacing: 25) {
             ZStack {
                 Circle()
@@ -243,7 +243,7 @@ public struct TokenEntryView: View {
             HStack(spacing: 15) {
                 Image(systemName: "waveform.circle.fill")
                     .foregroundColor(.blue)
-                    .font(isPad ? .title1 : .title2)
+                    .font(isPad ? .title : .title2)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(modelName)

@@ -312,6 +312,21 @@ struct TranscriptionView: View {
 
                         Divider()
 
+                        // Deactivate Profile / Delete Model Data
+                        Button(action: {
+                            TokenService.shared.resetToken()
+                        }) {
+                            Label("Deactivate and Delete Model Data", systemImage: "trash.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(15)
+                                .background(Color.red.opacity(0.1))
+                                .foregroundColor(.red)
+                                .cornerRadius(12)
+                        }
+
+                        Divider()
+
                         // Report Section
                         if transcriptionVM.totalCorrections > 0 {
                             Button(action: {

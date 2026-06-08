@@ -1,5 +1,6 @@
 import Foundation
 import ZIPFoundation // Added on macOS. Expected to not resolve during Windows compile phase.
+import Combine
 
 /// Enum representing the state of paid-token model access
 public enum TokenStatus: Equatable {

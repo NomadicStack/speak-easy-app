@@ -72,7 +72,7 @@ class TranscriptionViewModel: ObservableObject {
             }
             
             let modelName = modelDirURL.lastPathComponent
-            let modelFolder = modelDirURL.deletingLastPathComponent().path
+            let modelFolder = modelDirURL.path
             let tokenizerURL = modelDirURL
             
             let config = WhisperKitConfig(

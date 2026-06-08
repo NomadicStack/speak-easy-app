@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		972463562FA8137A00E244EE /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 972463552FA8137A00E244EE /* WhisperKit */; };
 		972463742FA8377500E244EE /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972463732FA8377500E244EE /* MailView.swift */; };
+		972463B32FA8137A00E244EE /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 972463B22FA8137A00E244EE /* ZIPFoundation */; };
 		973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 972463812FA8137A00E244EE /* LiteRTLMSwift */; };
 /* End PBXBuildFile section */
 
@@ -32,6 +33,7 @@
 			files = (
 				973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */,
 				972463562FA8137A00E244EE /* WhisperKit in Frameworks */,
+				972463B32FA8137A00E244EE /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +79,7 @@
 			name = DysarthriaApp;
 			packageProductDependencies = (
 				972463552FA8137A00E244EE /* WhisperKit */,
+				972463B22FA8137A00E244EE /* ZIPFoundation */,
 				972463812FA8137A00E244EE /* LiteRTLMSwift */,
 			);
 			productName = DysarthriaApp;
@@ -109,6 +112,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				972463542FA8137A00E244EE /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
+				972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -394,6 +398,14 @@
 				kind = branch;
 			};
 		};
+		972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -406,6 +418,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */;
 			productName = LiteRTLMSwift;
+		};
+		972463B22FA8137A00E244EE /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

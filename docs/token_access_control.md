@@ -209,3 +209,34 @@ To ensure your production costs stay within the free tier limits:
 3. Set a threshold budget (e.g., $10.00/month) and configure email notifications to alert you if the resource downloads or Firestore reads spike abnormally.
 
 
+---
+
+## 9. Troubleshooting Common Production Issues
+
+This section documents common deployment issues encountered during live testing and their solutions.
+
+### Issue A: Client Receives HTTP 403 Forbidden (Google Frontend Block)
+* **Symptom**: The client receives an HTML page instead of JSON, stating: *"Your client does not have permission to get URL / from this server."*
+* **Cause**: The Cloud Function/Cloud Run service was deployed as private (requiring IAM authentication) instead of allowing public invocations.
+* **Solution**:
+  1. Open the [Google Cloud Run Console](https://console.cloud.google.com/run).
+  2. Select the service named `downloadModel`.
+  3. Under the **Permissions** tab, click **Add Principal** (or **Grant Access**).
+  4. In **New principals**, enter `allUsers`.
+  5. In **Role**, search for and select **Cloud Run Invoker** (`roles/run.invoker`).
+  6. Save and confirm the prompt to make the resource public.
+
+### Issue B: Client Receives HTTP 500 Internal Server Error (Failed to Generate Signed URL)
+* **Symptom**: App throws a server error (HTTP 500). Cloud Function logs show `Permission 'iam.serviceAccounts.signBlob' denied` or `Failed to generate download URL`.
+* **Cause**: The service account running the Cloud Function does not have permission to cryptographically sign GCS URLs.
+* **Solution**:
+  1. Open the [Google Cloud IAM Console](https://console.cloud.google.com/iam-admin/iam).
+  2. Identify the service account running your function:
+     * **2nd Gen Functions (Cloud Run)**: Default Compute Engine service account (`[PROJECT_NUMBER]-compute@developer.gserviceaccount.com`).
+     * **1st Gen Functions**: App Engine default service account (`[PROJECT_ID]@appspot.gserviceaccount.com`).
+  3. Click **Edit (pencil icon)** next to that service account.
+  4. Click **Add Another Role** and select **Service Account Token Creator** (`roles/iam.serviceAccountTokenCreator`).
+  5. Click **Save** (allow 1–2 minutes for IAM propagation).
+
+
+

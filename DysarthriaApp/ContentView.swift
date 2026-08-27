@@ -113,7 +113,11 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            if transcriptionVM.hasCustomModel {
+                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            } else {
+                                TokenEntryView()
+                            }
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
@@ -133,7 +137,11 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            if transcriptionVM.hasCustomModel {
+                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
+                            } else {
+                                TokenEntryView()
+                            }
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
@@ -301,6 +309,21 @@ struct TranscriptionView: View {
                             .padding(.vertical, 10)
                         }
                         .font(.headline)
+
+                        Divider()
+
+                        // Deactivate Profile / Delete Model Data
+                        Button(action: {
+                            TokenService.shared.resetToken()
+                        }) {
+                            Label("Deactivate and Delete Model Data", systemImage: "trash.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(15)
+                                .background(Color.red.opacity(0.1))
+                                .foregroundColor(.red)
+                                .cornerRadius(12)
+                        }
 
                         Divider()
 

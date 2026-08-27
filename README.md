@@ -5,9 +5,10 @@ SpeakEasy is a specialized iPad application designed to bridge the communication
 ## Key Features
 
 - **Local AI Inference:** Both transcription and AI generation happen 100% on-device. No audio or text data ever leaves the device, ensuring total privacy.
-- **Accurate Transcription:** Uses Apple's Neural Engine and a custom fine-tuned Whisper model via **WhisperKit** to accurately transcribe dysarthric speech.
-- **Smart Speak (AAC Expander):** Uses a local **Gemma 4 (2B)** LLM via **LiteRTLMSwift** to expand shorthand phrases and quick-chip shortcuts into fully formed sentences (Direct, Natural, or Messaging styles).
-- **Accessibility-First UI:** Features massive typography, responsive iPad layouts, and customizable Quick Chips for easy communication.
+- **Accurate Transcription:** Uses Apple's Neural Engine and a custom fine-tuned Whisper model via **WhisperKit** to transcribe dysarthric speech. Gated behind a token-based access control system for secure model provisioning.
+- **Paid Token Access Control:** Dynamic backend-verified token checking that downloads the user's custom fine-tuned Whisper model over HTTPS and extracts it locally for offline ASR capability.
+- **Smart Speak (AAC Expander):** Uses a local **Gemma 4 (2B)** LLM via **LiteRTLMSwift** to expand shorthand phrases and quick-chip shortcuts into fully formed sentences.
+- **Accessibility-First UI:** Features massive typography, responsive iPad layouts, and customizable Quick Chips.
 - **Native Integration:** Spoken output via iPadOS Text-to-Speech (`AVSpeechSynthesizer`) and direct integration with the Messages app.
 
 ## Storage & Privacy
@@ -32,11 +33,13 @@ SpeakEasy bundles custom AI models directly within the app to guarantee offline 
 ## Project Structure
 
 - `DysarthriaApp/`: Source code for the main iPad application.
-  - Contains all Views, ViewModels, and Services (`AudioRecorder`, `TranscriptionViewModel`, `AACViewModel`, `GemmaService`).
+  - Contains Views, ViewModels, Services (`AudioRecorder`, `TranscriptionViewModel`, `AACViewModel`, `GemmaService`, `TokenService`, `KeychainHelper`).
+- `backend/`: Firebase Cloud Functions and Firestore rules configuration for token validation.
 - `ml/whisper_finetuning/`: Python pipeline for training the custom Whisper ASR model.
   - Includes training loops, metadata normalization, and checkpoint evaluation by WER/CER.
 - `docs/`: Technical documentation.
   - `architecture_overview.md`: Complete system architecture and component breakdown.
+  - `token_access_control.md`: Detailed configuration and setup guide for access control.
   - `aac-expander-design.md`: Design philosophy for the Smart Speak feature.
 
 ## Getting Started

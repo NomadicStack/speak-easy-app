@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		972463562FA8137A00E244EE /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 972463552FA8137A00E244EE /* WhisperKit */; };
 		972463742FA8377500E244EE /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972463732FA8377500E244EE /* MailView.swift */; };
+		972463B32FA8137A00E244EE /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 972463B22FA8137A00E244EE /* ZIPFoundation */; };
 		973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 972463812FA8137A00E244EE /* LiteRTLMSwift */; };
 /* End PBXBuildFile section */
 
@@ -32,6 +33,7 @@
 			files = (
 				973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */,
 				972463562FA8137A00E244EE /* WhisperKit in Frameworks */,
+				972463B32FA8137A00E244EE /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +79,7 @@
 			name = DysarthriaApp;
 			packageProductDependencies = (
 				972463552FA8137A00E244EE /* WhisperKit */,
+				972463B22FA8137A00E244EE /* ZIPFoundation */,
 				972463812FA8137A00E244EE /* LiteRTLMSwift */,
 			);
 			productName = DysarthriaApp;
@@ -109,6 +112,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				972463542FA8137A00E244EE /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
+				972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -149,7 +153,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "find \"${CODESIGNING_FOLDER_PATH}/Frameworks\" -name \"*.dylib\" -o -name \"*.framework\" | xargs codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --timestamp=none --generate-entitlement-der\n";
+			shellScript = "/bin/sh \"${SRCROOT}/scripts/patch-and-resign-frameworks.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -168,6 +172,7 @@
 		972463472FA8105B00E244EE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -231,6 +236,7 @@
 		972463482FA8105B00E244EE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -287,27 +293,29 @@
 		9724634A2FA8105B00E244EE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = DysarthriaApp/DysarthriaApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 8VZ8M4A64U;
+				EMBEDDED_CONTENT_CONTAINS_SWIFT = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SpeakEasy;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record and transcribe dysarthiric speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.my.SpeakEasy2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mdalai.SpeakEasy;
 				PRODUCT_NAME = SpeakEasy;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -322,27 +330,29 @@
 		9724634B2FA8105B00E244EE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = DysarthriaApp/DysarthriaApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 8VZ8M4A64U;
+				EMBEDDED_CONTENT_CONTAINS_SWIFT = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SpeakEasy;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record and transcribe dysarthiric speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.my.SpeakEasy2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mdalai.SpeakEasy;
 				PRODUCT_NAME = SpeakEasy;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -394,6 +404,14 @@
 				kind = branch;
 			};
 		};
+		972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -406,6 +424,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */;
 			productName = LiteRTLMSwift;
+		};
+		972463B22FA8137A00E244EE /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -98,7 +98,7 @@ Now, move to your Mac to configure the code signing settings inside Xcode.
 An "Archive" is the final release build of your app packed into an `.ipa` file.
 
 > [!NOTE]
-> If you encounter App Store Connect validation or upload errors (such as missing plist keys or invalid bundle structures due to SPM dependencies like `LiteRTLM-Swift`), please consult the [App Store Troubleshooting Guide](file:///Users/dalaimingat/Desktop/mydev/DysarthriaApp/docs/APP_STORE_TROUBLESHOOTING.md).
+> If you encounter App Store Connect validation or upload errors (such as missing plist keys or invalid bundle structures due to SPM dependencies like `LiteRT-LM`), please consult the [App Store Troubleshooting Guide](file:///Users/dalaimingat/Desktop/mydev/DysarthriaApp/docs/APP_STORE_TROUBLESHOOTING.md).
 
 1.  At the top of Xcode (in the scheme bar next to the Play/Stop buttons), select the active device target.
 2.  From the dropdown, select **Any iOS Device (arm64)**. *(You cannot archive if a Simulator is selected)*.

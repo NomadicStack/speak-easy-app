@@ -24,8 +24,8 @@ The Info.plist file is missing the required key: CFBundleShortVersionString.
 ```
 
 ### Root Cause
-The `CLiteRTLM.framework` is embedded automatically by Xcode as a dynamic binary dependency of the Swift Package Manager (SPM) dependency `LiteRTLM-Swift`. 
-Because it is built and shipped by third-party maintainers, its `Info.plist` is generated dynamically and lacks standard marketing version keys (`CFBundleShortVersionString` and sometimes `CFBundleVersion`). Apple's App Store validation checks all embedded framework bundles and rejects any bundle missing these keys.
+The `CLiteRTLM.framework` is embedded automatically by Xcode as a dynamic binary dependency of the Swift Package Manager (SPM) dependency `LiteRT-LM` (`google-ai-edge/LiteRT-LM`). 
+Because it is built and shipped as precompiled binaries, its `Info.plist` is generated dynamically and lacks standard marketing version keys (`CFBundleShortVersionString` and sometimes `CFBundleVersion`). Apple's App Store validation checks all embedded framework bundles and rejects any bundle missing these keys.
 
 ### Solution
 We inject the missing plist keys at build/archive time right before code-signing occurs:
@@ -135,8 +135,8 @@ The archive did not include a dSYM for the libGemmaModelConstraintProvider.dylib
 ```
 
 ### Root Cause
-Both `CLiteRTLM` (the framework) and `libGemmaModelConstraintProvider.dylib` (the dynamic helper library) are precompiled binary components supplied inside the third-party `LiteRTLM-Swift` package. 
-Because the library maintainers do not distribute debug symbols (`.dSYM` folders) in their release assets, Xcode cannot locate or extract symbols for these binaries to include in the archive's `dSYMs` folder.
+Both `CLiteRTLM` (the framework) and `libGemmaModelConstraintProvider.dylib` (the dynamic helper library) are precompiled binary components supplied inside the official `LiteRT-LM` package. 
+Because the precompiled binary releases do not distribute debug symbols (`.dSYM` folders) in their release assets, Xcode cannot locate or extract symbols for these binaries to include in the archive's `dSYMs` folder.
 
 ### Impact and Resolution
 *   **No Action Required:** This is a **warning**, not a blocker. It will **not** prevent your upload from completing successfully, nor will it result in your app being rejected by Apple App Review. The build will still be successfully uploaded and made available on TestFlight and the App Store.

@@ -1,5 +1,5 @@
 {
-  "originHash" : "9e05af1e4e9dd0de21b5362188fb9292285e9f1f7e99b6f269509984223bdcb4",
+  "originHash" : "13eb2ba18ba7fb309cda1d6bcfd1d1756658c27d7db956ad1ac2439b445eb33e",
   "pins" : [
     {
       "identity" : "argmax-oss-swift",
@@ -7,16 +7,16 @@
       "location" : "https://github.com/argmaxinc/argmax-oss-swift",
       "state" : {
         "branch" : "main",
-        "revision" : "c9cf2033012c900d1b15a2f3f423c2901cbbf40d"
+        "revision" : "ea872ffd35705aa757f33033500b9b0d40bd38df"
       }
     },
     {
-      "identity" : "litertlm-swift",
+      "identity" : "litert-lm",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mylovelycodes/LiteRTLM-Swift.git",
+      "location" : "https://github.com/google-ai-edge/LiteRT-LM",
       "state" : {
-        "branch" : "main",
-        "revision" : "0e63b19c21ba562d6824fbfc409fba0916acea18"
+        "revision" : "924e79c91542761242244e4f1651851f822e4cbb",
+        "version" : "0.16.1"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser.git",
       "state" : {
-        "revision" : "626b5b7b2f45e1b0b1c6f4a309296d1d21d7311b",
-        "version" : "1.7.1"
+        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version" : "1.8.2"
       }
     },
     {

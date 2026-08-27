@@ -1,13 +1,13 @@
 import Foundation
 import Combine
 import SwiftUI
-import LiteRTLMSwift
+import LiteRTLM
 
 class GemmaService: ObservableObject {
     @Published var isModelLoaded: Bool = false
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     
-    private var engine: LiteRTLMEngine?
+    private var engine: Engine?
     
     func loadModel() async throws {
         if useSimulation {
@@ -22,23 +22,48 @@ class GemmaService: ObservableObject {
         
         await MainActor.run { isModelLoaded = false }
         
+        print("--- LiteRT-LM Loading Debug ---")
+        print("Model Path: \(localURL.path)")
+        
         do {
-            print("--- LiteRTLM Loading Debug ---")
-            print("Model Path: \(localURL.path)")
-            
-            let engine = LiteRTLMEngine(modelPath: localURL, backend: "cpu")
-            // LiteRTLM loading can be slow (5-10s)
-            try await engine.load()
+            print("Attempting Metal GPU acceleration...")
+            let config = try EngineConfig(
+                modelPath: localURL.path,
+                backend: .gpu,
+                maxNumTokens: 512,
+                cacheDir: NSTemporaryDirectory()
+            )
+            let engine = Engine(engineConfig: config)
+            try await engine.initialize()
             
             await MainActor.run {
                 self.engine = engine
                 self.isModelLoaded = true
             }
-            print("LiteRTLM Model Loaded Successfully")
+            print("LiteRT-LM Model Loaded Successfully on GPU")
             print("---------------------------")
         } catch {
-            print("Failed to initialize LiteRTLM: \(error)")
-            throw error
+            print("GPU backend initialization failed: \(error.localizedDescription). Retrying with CPU backend...")
+            do {
+                let config = try EngineConfig(
+                    modelPath: localURL.path,
+                    backend: .cpu(),
+                    maxNumTokens: 512,
+                    cacheDir: NSTemporaryDirectory()
+                )
+                let engine = Engine(engineConfig: config)
+                try await engine.initialize()
+                
+                await MainActor.run {
+                    self.engine = engine
+                    self.isModelLoaded = true
+                }
+                print("LiteRT-LM Model Loaded Successfully on CPU")
+                print("---------------------------")
+            } catch {
+                print("Failed to initialize LiteRT-LM on CPU: \(error)")
+                throw error
+            }
         }
     }
     
@@ -97,10 +122,10 @@ class GemmaService: ObservableObject {
         <|turn>model
         """
         
-        return try await engine.generate(
-            prompt: prompt,
-            temperature: 0.6,
-            maxTokens: 512
-        )
+        let samplerConfig = try? SamplerConfig(topK: 40, topP: 0.95, temperature: 0.6)
+        let convConfig = ConversationConfig(samplerConfig: samplerConfig)
+        let conversation = try await engine.createConversation(with: convConfig)
+        let response = try await conversation.sendMessage(Message(prompt))
+        return response.toString
     }
 }

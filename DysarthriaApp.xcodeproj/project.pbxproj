@@ -10,7 +10,7 @@
 		972463562FA8137A00E244EE /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 972463552FA8137A00E244EE /* WhisperKit */; };
 		972463742FA8377500E244EE /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972463732FA8377500E244EE /* MailView.swift */; };
 		972463B32FA8137A00E244EE /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 972463B22FA8137A00E244EE /* ZIPFoundation */; };
-		973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 972463812FA8137A00E244EE /* LiteRTLMSwift */; };
+		973252E32FB0A84900F6926C /* LiteRTLM in Frameworks */ = {isa = PBXBuildFile; productRef = 972463812FA8137A00E244EE /* LiteRTLM */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,7 +31,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				973252E32FB0A84900F6926C /* LiteRTLMSwift in Frameworks */,
+				973252E32FB0A84900F6926C /* LiteRTLM in Frameworks */,
 				972463562FA8137A00E244EE /* WhisperKit in Frameworks */,
 				972463B32FA8137A00E244EE /* ZIPFoundation in Frameworks */,
 			);
@@ -80,7 +80,7 @@
 			packageProductDependencies = (
 				972463552FA8137A00E244EE /* WhisperKit */,
 				972463B22FA8137A00E244EE /* ZIPFoundation */,
-				972463812FA8137A00E244EE /* LiteRTLMSwift */,
+				972463812FA8137A00E244EE /* LiteRTLM */,
 			);
 			productName = DysarthriaApp;
 			productReference = 9724633E2FA8105900E244EE /* SpeakEasy.app */;
@@ -113,7 +113,7 @@
 			packageReferences = (
 				972463542FA8137A00E244EE /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
 				972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */,
+				972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRT-LM" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9724633F2FA8105900E244EE /* Products */;
@@ -396,12 +396,12 @@
 				kind = branch;
 			};
 		};
-		972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */ = {
+		972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRT-LM" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mylovelycodes/LiteRTLM-Swift.git";
+			repositoryURL = "https://github.com/google-ai-edge/LiteRT-LM";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = exactVersion;
+				version = 0.16.1;
 			};
 		};
 		972463B12FA8137A00E244EE /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
@@ -420,10 +420,10 @@
 			package = 972463542FA8137A00E244EE /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
 			productName = WhisperKit;
 		};
-		972463812FA8137A00E244EE /* LiteRTLMSwift */ = {
+		972463812FA8137A00E244EE /* LiteRTLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRTLM-Swift" */;
-			productName = LiteRTLMSwift;
+			package = 972463802FA8137A00E244EE /* XCRemoteSwiftPackageReference "LiteRT-LM" */;
+			productName = LiteRTLM;
 		};
 		972463B22FA8137A00E244EE /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;

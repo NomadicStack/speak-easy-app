@@ -24,9 +24,8 @@ Replaced standard `TabView` with a custom **Large-Scale TabBar**:
 
 ## 3. Technical Optimizations
 
-### Gemma 4 Signature Patch
-The `.litertlm` bundle for Gemma 4 contains 3 vision signatures which causes a crash in LiteRT-LM. 
-**Fix:** Patched `LiteRTLMEngine.swift` to pass `nil` to vision/audio backends, loading only the LLM text core. (See `docs/GEMMA4_PATCH_GUIDE.md`).
+### Google LiteRT-LM SDK Integration
+Migrated to Google's official `google-ai-edge/LiteRT-LM` (`LiteRTLM`) SDK with `EngineConfig`, `Engine`, and `Conversation` APIs. Hardware acceleration defaults to `.gpu` Metal execution with automatic `.cpu` fallback.
 
 ### Simulation Layer
 A **Simulated AI Mode** bypasses real LLM loading for developer testing on Mac Simulators, providing mock 3-sentence expansions with 1.5s latency.

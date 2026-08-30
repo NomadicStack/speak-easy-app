@@ -113,11 +113,7 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            if transcriptionVM.hasCustomModel {
-                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                            } else {
-                                TokenEntryView()
-                            }
+                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
@@ -137,11 +133,7 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            if transcriptionVM.hasCustomModel {
-                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                            } else {
-                                TokenEntryView()
-                            }
+                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
@@ -248,6 +240,12 @@ struct TranscriptionView: View {
                         .foregroundColor(.blue)
                     
                     Spacer()
+                    
+                    Button(action: { isShowingModelSelection = true }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(isPad ? .title2 : .title3)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, isPad ? 20 : 10)
@@ -325,8 +323,6 @@ struct TranscriptionView: View {
                                 .cornerRadius(12)
                         }
 
-                        Divider()
-
                         // Report Section
                         if transcriptionVM.totalCorrections > 0 {
                             Button(action: {
@@ -401,17 +397,17 @@ struct TranscriptionView: View {
 
                     Spacer()
 
-                    // Model Ready Badge in the middle
+                    // Active Speech Model Badge
                     HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
+                        Image(systemName: transcriptionVM.isCustomModel ? "sparkles.rectangle.stack.fill" : "checkmark.circle.fill")
                             .font(isPad ? .title3 : .caption)
-                        Text("Model Ready")
+                        Text(transcriptionVM.isCustomModel ? "Custom (\(transcriptionVM.currentModelDisplay))" : "Base (Whisper Small)")
                             .font(isPad ? .title3.bold() : .caption.bold())
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 15)
                     .padding(.vertical, 8)
-                    .background(Capsule().fill(Color.green))
+                    .background(Capsule().fill(transcriptionVM.isCustomModel ? Color.purple : Color.green))
 
                     Spacer()
 
@@ -574,6 +570,11 @@ struct TranscriptionView: View {
                     .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
                 }
                 .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 60)
+            }
+        }
+        .sheet(isPresented: $isShowingModelSelection) {
+            NavigationView {
+                ModelSelectionView()
             }
         }
     }

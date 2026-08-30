@@ -18,6 +18,9 @@ class TranscriptionViewModel: ObservableObject {
     @Published var modelLoadingMessage: String = "Loading model..."
     @Published var isModelLoaded: Bool = false
     
+    @Published var currentModelDisplay: String = "Whisper Small"
+    @Published var isCustomModel: Bool = false
+    
     // Stats and Feedback
     @Published var totalTranscriptions: Int = 0
     @Published var totalCorrections: Int = 0
@@ -25,73 +28,97 @@ class TranscriptionViewModel: ObservableObject {
     @Published var originalTranscription: String = ""
     @Published var isEditing: Bool = false
     
-    @Published var hasCustomModel: Bool = false
-    
     private var whisperKit: WhisperKit?
     private let correctionsKey = "saved_corrections"
     private var cancellables = Set<AnyCancellable>()
+    private var isInitializing = false
     
     init() {
         self.totalTranscriptions = UserDefaults.standard.integer(forKey: "total_transcriptions")
         self.totalCorrections = UserDefaults.standard.integer(forKey: "total_corrections")
         
-        // Dynamic Access Control: Listen to TokenService changes
+        // Always start loading a model immediately on launch
+        Task { await self.initializeWhisperKit() }
+        
+        // Listen for custom model activation or removal — reinitialize WhisperKit
         TokenService.shared.$status
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
                 guard let self = self else { return }
                 switch status {
-                case .active(let modelName):
-                    self.hasCustomModel = true
-                    self.modelLoadingMessage = "Custom model ready (\(modelName))"
-                    // Proactively load the model if it hasn't been loaded yet
-                    if !self.isModelLoaded && !self.isTranscribing {
-                        Task {
-                            await self.initializeWhisperKit()
-                        }
+                case .active, .none:
+                    // Custom model was activated or deactivated — reinitialize model
+                    if !self.isTranscribing {
+                        Task { await self.initializeWhisperKit() }
                     }
                 default:
-                    self.hasCustomModel = false
-                    self.isModelLoaded = false
-                    self.whisperKit = nil
-                    self.modelLoadingMessage = "Speech model locked. Enter paid access token to activate."
+                    break
                 }
             }
             .store(in: &cancellables)
     }
     
     func initializeWhisperKit() async {
-        do {
-            self.modelLoadingMessage = "Loading custom dysarthria model..."
-            
-            // Resolve local Documents folder path to unzipped model files
-            guard let modelDirURL = TokenService.shared.findModelDirectory() else {
-                self.modelLoadingMessage = "Error: Custom voice model not found locally."
-                self.isModelLoaded = false
+        guard !isInitializing else { return }
+        isInitializing = true
+        defer { isInitializing = false }
+        
+        self.isModelLoaded = false
+        self.whisperKit = nil
+        
+        // Priority 1: Custom model (if available from token)
+        if let modelDirURL = TokenService.shared.findModelDirectory() {
+            do {
+                let modelName = modelDirURL.lastPathComponent
+                self.modelLoadingMessage = "Loading custom model (\(modelName))..."
+                
+                let config = WhisperKitConfig(
+                    model: modelName,
+                    modelFolder: modelDirURL.path,
+                    tokenizerFolder: modelDirURL,
+                    computeOptions: ModelComputeOptions(
+                        melCompute: .cpuAndNeuralEngine,
+                        audioEncoderCompute: .cpuAndNeuralEngine,
+                        textDecoderCompute: .cpuAndNeuralEngine
+                    ),
+                    download: false
+                )
+                
+                self.whisperKit = try await WhisperKit(config)
+                self.isModelLoaded = true
+                self.isCustomModel = true
+                self.currentModelDisplay = modelName
+                self.modelLoadingMessage = "Model ready (\(modelName))"
+                
+                // Purge base model cache to conserve device storage
+                TokenService.shared.deleteBaseModelCache()
                 return
+            } catch {
+                print("Custom model failed, falling back to free model: \(error)")
             }
-            
-            let modelName = modelDirURL.lastPathComponent
-            let modelFolder = modelDirURL.path
-            let tokenizerURL = modelDirURL
+        }
+        
+        // Priority 2: Free model (auto-download from WhisperKit hub)
+        do {
+            self.modelLoadingMessage = "Downloading speech model... This may take a few minutes on first launch."
             
             let config = WhisperKitConfig(
-                model: modelName,
-                modelFolder: modelFolder,
-                tokenizerFolder: tokenizerURL,
+                model: "openai_whisper-small",
                 computeOptions: ModelComputeOptions(
                     melCompute: .cpuAndNeuralEngine,
                     audioEncoderCompute: .cpuAndNeuralEngine,
                     textDecoderCompute: .cpuAndNeuralEngine
-                ),
-                download: false
+                )
             )
             
             self.whisperKit = try await WhisperKit(config)
             self.isModelLoaded = true
-            self.modelLoadingMessage = "Model ready (\(modelName))"
+            self.isCustomModel = false
+            self.currentModelDisplay = "Whisper Small"
+            self.modelLoadingMessage = "Model ready (Whisper Small)"
         } catch {
-            self.modelLoadingMessage = "Initialization error: \(error.localizedDescription)"
+            self.modelLoadingMessage = "Failed to load model: \(error.localizedDescription)"
             print("WhisperKit initialization error: \(error)")
             self.isModelLoaded = false
         }

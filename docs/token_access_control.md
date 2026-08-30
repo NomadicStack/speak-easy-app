@@ -1,6 +1,6 @@
-# Phase 1: Token-Based Access Control Setup Guide
+# Custom Model Import & Access Token Setup Guide
 
-This guide details how to configure, deploy, and operate the Token-Based Access Control system for the SpeakEasy dysarthria iPad application. This system restricts speech model access so that only authorized, paying subscribers can download and initialize their personalized WhisperKit models.
+This guide details how to configure, deploy, and operate the Custom Model Import system for the SpeakEasy dysarthria iPad application. By default, SpeakEasy operates out of the box using the free open-source `openai_whisper-small` model. Users who have had custom speech models trained and fine-tuned for their voice can enter an access token via Settings to download and swap in their personalized WhisperKit model.
 
 ---
 
@@ -15,13 +15,14 @@ sequenceDiagram
     participant FS as Firestore (paid_tokens)
     participant GCS as Cloud Storage (gs://...)
 
-    User->>iOS: Enter Paid Token
+    Note over iOS: Default: Runs openai_whisper-small out-of-the-box
+    User->>iOS: Enter Access Token in Settings
     iOS->>CF: Request with Authorization: Bearer <token>
     CF->>FS: Query document named <token>
     alt Token Invalid/Revoked
         FS-->>CF: Return null or inactive
         CF-->>iOS: HTTP 403 Forbidden
-        iOS->>User: Show "Invalid or inactive paid token"
+        iOS->>User: Show "Invalid or expired access token"
     else Token Active
         FS-->>CF: Return token metadata (active)
         CF->>GCS: Check file exists & generate signed URL (5m expiry)
@@ -30,8 +31,9 @@ sequenceDiagram
         iOS->>GCS: Download Model ZIP archive (progress tracked)
         GCS-->>iOS: ZIP file downloaded
         iOS->>iOS: Extract via ZIPFoundation to Documents/WhisperModels/
-        iOS->>iOS: Initialize WhisperKit from local path
-        iOS->>User: Unlock Transcribe Tab
+        iOS->>iOS: Purge base model cache (Conserves disk space)
+        iOS->>iOS: Initialize WhisperKit with Custom Model
+        iOS->>User: Display "Active: Custom (ModelName)" Badge
     end
 ```
 
@@ -127,22 +129,21 @@ In `DysarthriaApp/TokenService.swift`, modify the `backendUrlString` property wi
 private let backendUrlString = "https://<region>-<project-id>.cloudfunctions.net/downloadModel"
 ```
 
-### C. Remove Bundled Model
-Under Option A, we ship the app without any pre-bundled WhisperKit model.
-- Remove any existing `CustomDysarthriaModel` folder references from the Xcode project file hierarchy (ensure it is not in "Copy Bundle Resources").
-
-### D. Compile and Verify
+### C. Compile and Verify
 1. Build the application in Xcode.
-2. On initial run, select the **Transcribe** tab. It will display the activation screen.
-3. Enter a valid token created in Firestore and tap **Activate & Download Model**.
-4. Verify the progress indicator is functional, the archive extracts, and the transcription model loads successfully.
+2. On launch, the **Transcribe** tab immediately opens and initializes the default `openai_whisper-small` model.
+3. Open **Settings** (gear icon) -> **Speech Recognition Model** -> **Import Custom Model**.
+4. Enter a valid token created in Firestore and tap **Import & Download Model**.
+5. Verify the download progress bar, archive extraction, and that the purple badge `✨ Custom (ModelName)` appears.
 
 ---
 
 ## 6. Token Revocation & Deactivation
 
-- To temporarily deactivate access, change `token_status` in Firestore to `"revoked"` or `"disabled"`.
-- To completely delete a user's local model cache and credentials, the caregiver/user can tap **Deactivate and Delete Model Data** at the bottom of the active token screen inside the app. This deletes the token from the Keychain and purges the downloaded directory from disk.
+- To temporarily deactivate access on future installs, change `token_status` in Firestore to `"revoked"` or `"disabled"`.
+- To delete a user's custom model and revert to the default open-source model:
+  - Inside the app, navigate to **Settings** -> **Speech Recognition Model** -> tap **Revert to Base Model (Whisper Small)**.
+  - This deletes the token from Keychain, purges `Documents/WhisperModels/`, and automatically re-downloads/activates the base `openai_whisper-small` model.
 
 ---
 

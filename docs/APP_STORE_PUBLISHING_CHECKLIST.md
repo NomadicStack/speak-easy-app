@@ -169,8 +169,8 @@ Once testing is successful and metadata is complete, submit the app for review.
 3.  Click **Select a build before you submit**, choose the build you uploaded and tested in TestFlight, and click **Done**.
 4.  **App Review Information:**
     *   **Contact Information:** Enter your name and phone number.
-    *   **Sign-in Information:** Since the app requires a token, check **Sign-in required** and provide a valid test token (e.g. `tkn_live_test`) so the Apple App Review team can log in, download the models, and test the transcription.
-    *   **Notes:** Add a note explaining: *"This application utilizes local on-device machine learning models (WhisperKit and Gemma) for accessibility. Once the user enters the provided token, the app downloads a ~500MB CoreML model zip file from the backend and initializes locally on the hardware. Please use the provided test token to activate the voice model."*
+    *   **Sign-in Information:** Uncheck **Sign-in required**. No login, account, or test token is required to review all features.
+    *   **Notes:** Add a note explaining: *"No login, credentials, or access tokens are required. All app features (Speech Transcription & Smart Speak AI Expander) are fully accessible immediately upon launch. On first launch, the Transcribe feature automatically downloads a free open-source speech model (openai_whisper-small) for local on-device inference. Users with custom fine-tuned models can optionally import their model via Settings -> Custom Voice Model."*
 5.  Click **Save**, then click **Add for Review** (top right).
 6.  Click **Submit to App Review**.
 

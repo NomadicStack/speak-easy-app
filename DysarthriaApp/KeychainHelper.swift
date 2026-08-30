@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-/// A helper class to manage secure storage of the user's paid token in the iOS Keychain.
+/// A helper class to manage secure storage of the user's access token in the iOS Keychain.
 public final class KeychainHelper {
     public static let shared = KeychainHelper()
     

@@ -31,12 +31,12 @@ public struct TokenEntryView: View {
             }
             
             VStack(spacing: 12) {
-                Text("Unlock Custom Voice Model")
+                Text("Import Custom Voice Model")
                     .font(isPad ? .largeTitle.bold() : .title2.bold())
                     .multilineTextAlignment(.center)
                     .foregroundColor(.primary)
                 
-                Text("SpeakEasy uses a custom Whisper speech-to-text model fine-tuned specifically for your speech patterns. Enter your paid access token below to retrieve and setup your personalized profile.")
+                Text("SpeakEasy can use a custom Whisper speech-to-text model fine-tuned specifically for your speech patterns. Enter your access token below to download your personalized model.")
                     .font(isPad ? .title3 : .subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -73,7 +73,7 @@ public struct TokenEntryView: View {
             
             Spacer()
             
-            Text("Tokens are provided by email upon subscription setup. Model files work 100% offline once downloaded.")
+            Text("Access tokens are provided by your model provider. Model files work 100% offline once downloaded.")
                 .font(.system(size: isPad ? 16 : 12))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -112,7 +112,7 @@ public struct TokenEntryView: View {
                         .foregroundColor(.secondary)
                         .font(isPad ? .title3 : .body)
                     
-                    SecureField("Enter Paid Token (e.g. tkn_live_...)", text: $tokenInput)
+                    SecureField("Enter Access Token", text: $tokenInput)
                         .font(isPad ? .title3 : .body)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
@@ -129,7 +129,7 @@ public struct TokenEntryView: View {
                     tokenService.activateToken(tokenInput)
                 }) {
                     HStack {
-                        Text("Activate & Download Model")
+                        Text("Import & Download Model")
                             .font(isPad ? .title3.bold() : .headline)
                         Image(systemName: "arrow.down.circle.fill")
                             .font(isPad ? .title3 : .headline)

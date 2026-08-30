@@ -198,6 +198,51 @@ struct ModelSelectionView: View {
                 .font(isPad ? .title3.bold() : .headline)
             }
             
+            // Custom Voice Model
+            Section(header: Text("Custom Voice Model").font(isPad ? .title3.bold() : .caption.bold())) {
+                if case .active(let modelName) = TokenService.shared.status {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(isPad ? .title3 : .body)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Active: \(modelName)")
+                                .font(isPad ? .title3.bold() : .headline)
+                            Text("Custom model is loaded for transcription")
+                                .font(isPad ? .headline : .caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, isPad ? 10 : 5)
+                    
+                    Button(role: .destructive, action: {
+                        TokenService.shared.resetToken()
+                    }) {
+                        Label("Remove Custom Model", systemImage: "trash")
+                            .font(isPad ? .title3 : .headline)
+                    }
+                } else {
+                    NavigationLink {
+                        TokenEntryView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.down")
+                                .foregroundColor(.blue)
+                                .font(isPad ? .title3 : .body)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Import Custom Model")
+                                    .font(isPad ? .title3.bold() : .headline)
+                                Text("Use an access token to download a custom speech model")
+                                    .font(isPad ? .headline : .caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, isPad ? 10 : 5)
+                    }
+                }
+            }
+
             Section {
                 Button(role: .destructive, action: {
                     modelManager.clearAllModels()

@@ -2,7 +2,7 @@ import Foundation
 import ZIPFoundation // Added on macOS. Expected to not resolve during Windows compile phase.
 import Combine
 
-/// Enum representing the state of paid-token model access
+/// Enum representing the state of custom model access
 public enum TokenStatus: Equatable {
     case none
     case validating
@@ -12,7 +12,7 @@ public enum TokenStatus: Equatable {
     case error(String)
 }
 
-/// Service that coordinates validating paid tokens, downloading models, unzipping them,
+/// Service that coordinates validating access tokens, downloading models, unzipping them,
 /// and verifying their local presence.
 public final class TokenService: NSObject, ObservableObject {
     public static let shared = TokenService()
@@ -93,7 +93,7 @@ public final class TokenService: NSObject, ObservableObject {
             
             guard httpResponse.statusCode == 200 else {
                 if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-                    self.updateStatus(.error("Invalid or inactive paid token."))
+                    self.updateStatus(.error("Invalid or expired access token."))
                 } else if httpResponse.statusCode == 404 {
                     self.updateStatus(.error("Model file not found on server. Contact support."))
                 } else {

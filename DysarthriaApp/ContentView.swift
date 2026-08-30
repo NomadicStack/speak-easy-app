@@ -113,11 +113,7 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            if transcriptionVM.hasCustomModel {
-                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                            } else {
-                                TokenEntryView()
-                            }
+                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
@@ -137,11 +133,7 @@ struct ContentView: View {
                     // Main Content Area
                     Group {
                         if selectedTab == 0 {
-                            if transcriptionVM.hasCustomModel {
-                                TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                            } else {
-                                TokenEntryView()
-                            }
+                            TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
                         } else {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
@@ -248,6 +240,12 @@ struct TranscriptionView: View {
                         .foregroundColor(.blue)
                     
                     Spacer()
+                    
+                    Button(action: { isShowingModelSelection = true }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(isPad ? .title2 : .title3)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, isPad ? 20 : 10)
@@ -324,8 +322,6 @@ struct TranscriptionView: View {
                                 .foregroundColor(.red)
                                 .cornerRadius(12)
                         }
-
-                        Divider()
 
                         // Report Section
                         if transcriptionVM.totalCorrections > 0 {
@@ -574,6 +570,11 @@ struct TranscriptionView: View {
                     .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
                 }
                 .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 60)
+            }
+        }
+        .sheet(isPresented: $isShowingModelSelection) {
+            NavigationView {
+                ModelSelectionView()
             }
         }
     }

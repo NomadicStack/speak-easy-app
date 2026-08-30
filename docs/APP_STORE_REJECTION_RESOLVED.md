@@ -30,7 +30,19 @@ To resolve both guidelines cleanly without introducing complex IAP infrastructur
    * Users who possess a custom fine-tuned model key can enter an access token to download and swap in their personalized model.
    * The feature is reframed strictly as a technical model import setting, not a paywall or locked feature.
 
-3. **Complete Language & UI Audit (Solves 3.1.1):**
+3. **Single-Model Storage Management (Solves Guideline 2.2 / Storage Bloat):**
+   * Only **one** speech model occupies on-device disk space at a time (~460MB total footprint).
+   * When a custom model is successfully imported, the cached base model in `Library/Application Support/huggingface` is automatically purged.
+   * When a custom model is removed or reverted, `Documents/WhisperModels/` is deleted, and the default base model is restored.
+   * Custom model directories are marked `isExcludedFromBackup = true` to comply with iOS Data Storage Guidelines.
+
+4. **Transparent Active Model UI Indicator:**
+   * The Transcribe tab prominently displays the active model via a status pill badge:
+     * **Green Pill Badge:** `✓ Base (Whisper Small)`
+     * **Purple Pill Badge:** `✨ Custom (ModelName)`
+   * The Settings screen clearly identifies the current active model and explains the storage management policy.
+
+5. **Complete Language & UI Audit (Solves 3.1.1):**
    * All user-facing references to "paid token", "unlock", "subscription", and "access control" were purged and replaced with neutral terms ("access token", "import custom model", "model provider").
 
 ---
@@ -39,12 +51,12 @@ To resolve both guidelines cleanly without introducing complex IAP infrastructur
 
 | File | Change | Purpose |
 | :--- | :--- | :--- |
-| **`TranscriptionViewModel.swift`** | Removed `hasCustomModel` property. Updated `initializeWhisperKit()` to auto-download `openai_whisper-small` by default, while loading custom model from `Documents/WhisperModels/` if active. | Enables ungated transcription while supporting custom model overrides. |
-| **`ContentView.swift`** | Removed `if transcriptionVM.hasCustomModel` conditional gate in both landscape and portrait layouts. Added a Settings gear button to the header to present `ModelSelectionView`. | Ensures Transcribe tab is immediately accessible upon launch. |
-| **`ModelSelectionView.swift`** | Added a "Custom Voice Model" section allowing users to enter `TokenEntryView` or deactivate active custom models. | Moves token management into Settings. |
-| **`TokenEntryView.swift`** | Updated header, descriptions, placeholders, and buttons. Removed "Unlock", "Paid", and "Subscription" terminology. | Purges paywall/unlock language. |
-| **`TokenService.swift`** | Cleaned docstrings and error messages (e.g., "Invalid or expired access token"). | Purges paid terminology from errors. |
-| **`KeychainHelper.swift`** | Updated class docstring references. | Removes internal doc mentions of paid tokens. |
+| **`TranscriptionViewModel.swift`** | Removed `hasCustomModel`. Added `currentModelDisplay` and `isCustomModel` state tracking. Updated `initializeWhisperKit()` to auto-download `openai_whisper-small` by default, purge base cache when custom model is loaded, and guard against concurrent initializations. | Enables ungated transcription, dynamic model status tracking, and single-model disk conservation. |
+| **`ContentView.swift`** | Removed `if transcriptionVM.hasCustomModel` conditional gate. Added Settings gear button. Updated status pill to dynamically display active model name (`Base (Whisper Small)` vs `Custom (ModelName)`) with color coding. | Immediate out-of-the-box access and clear active model visibility. |
+| **`ModelSelectionView.swift`** | Added observed `TokenService.shared`, dynamic speech recognition model status display, single-model storage explanation, and unrestricted Done button dismissal. | Seamless reactive token management in Settings. |
+| **`TokenEntryView.swift`** | Updated navigation bar, header, descriptions, placeholders, and buttons. Removed "Unlock", "Paid", and "Subscription" terminology. | Purges paywall/unlock language and improves UX. |
+| **`TokenService.swift`** | Added `deleteBaseModelCache()`, recursive `findModelDirectory()` skipping OS metadata (`__MACOSX`, `.DS_Store`), and `isExcludedFromBackup` flag. Cleaned docstrings and error messages. | Ensures single-model storage, resilient model extraction, and iOS Data Storage compliance. |
+| **`KeychainHelper.swift`** | Updated class docstrings and secure token handling. | Secure, neutral credential storage. |
 
 ---
 
@@ -57,7 +69,7 @@ App Review Notes:
 - No login, credentials, or access tokens are required to test or evaluate the application.
 - All app features (Speech Transcription & Smart Speak AI Expander) are fully accessible immediately upon launch.
 - On first launch, the Transcribe feature automatically downloads a free open-source speech model (openai_whisper-small) for local on-device inference.
-- Advanced users with personalized fine-tuned voice models can optionally import their model via Settings -> Custom Voice Model.
+- Advanced users with personalized fine-tuned voice models can optionally import their model via Settings -> Speech Recognition Model.
 ```
 
 ---
@@ -65,6 +77,7 @@ App Review Notes:
 ## 5. Verification & Testing
 
 Before submitting the build:
-1. **Fresh Install Test:** Delete the app from a physical iPad or simulator. Launch the app and confirm the Transcribe tab opens directly, downloads `openai_whisper-small`, and performs audio transcriptions.
-2. **Settings Import Test:** Navigate to Settings (gear icon on Transcribe tab or via Smart Speak tab) -> Custom Voice Model -> Import Custom Model. Enter a valid token and verify it downloads and initializes the custom model seamlessly.
-3. **Deactivate Test:** Select "Remove Custom Model" in Settings, and verify the app reverts to the default `openai_whisper-small` model without error.
+1. **Fresh Install Test:** Delete the app from a physical iPad or simulator. Launch the app and confirm the Transcribe tab opens directly with the green `✓ Base (Whisper Small)` badge, downloads `openai_whisper-small`, and performs audio transcriptions.
+2. **Settings Import Test:** Navigate to Settings (gear icon on Transcribe tab or via Smart Speak tab) -> Speech Recognition Model -> Import Custom Model. Enter a valid token and verify it downloads, purges base cache, and activates the purple `✨ Custom (ModelName)` badge.
+3. **Deactivate / Revert Test:** Select "Revert to Base Model (Whisper Small)" in Settings, and verify the app deletes the custom model and restores the default `openai_whisper-small` model seamlessly.
+

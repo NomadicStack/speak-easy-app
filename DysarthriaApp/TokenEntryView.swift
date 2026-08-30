@@ -81,6 +81,8 @@ public struct TokenEntryView: View {
         }
         .padding(isPad ? 40 : 20)
         .background(Color(UIColor.systemGroupedBackground))
+        .navigationTitle("Custom Voice Model")
+        .navigationBarTitleDisplayMode(.inline)
     }
     
     // MARK: - Input State View

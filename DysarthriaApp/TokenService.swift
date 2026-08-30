@@ -156,6 +156,36 @@ public final class TokenService: NSObject, ObservableObject {
         try? fileManager.removeItem(at: whisperModelsURL)
     }
     
+    /// Purges the cached base Whisper model to ensure only one speech model resides on disk.
+    public func deleteBaseModelCache() {
+        let fileManager = FileManager.default
+        
+        // 1. App Support / huggingface
+        if let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let hfDir = appSupport.appendingPathComponent("huggingface")
+            try? fileManager.removeItem(at: hfDir)
+        }
+        
+        // 2. Caches / huggingface & models
+        if let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            let hfCacheDir = caches.appendingPathComponent("huggingface")
+            try? fileManager.removeItem(at: hfCacheDir)
+            let modelsCacheDir = caches.appendingPathComponent("models")
+            try? fileManager.removeItem(at: modelsCacheDir)
+        }
+    }
+    
+    private func excludeFromBackup(url: URL) {
+        var resourceURL = url
+        var resourceValues = URLResourceValues()
+        resourceValues.isExcludedFromBackup = true
+        do {
+            try resourceURL.setResourceValues(resourceValues)
+        } catch {
+            print("Failed to exclude from backup: \(error)")
+        }
+    }
+    
     private func updateStatus(_ newStatus: TokenStatus) {
         DispatchQueue.main.async {
             self.status = newStatus
@@ -173,19 +203,16 @@ public final class TokenService: NSObject, ObservableObject {
         
         guard fileManager.fileExists(atPath: whisperModelsURL.path) else { return nil }
         
-        // Scenario A: Flattended structure directly in WhisperModels/
+        // Scenario A: Flattened structure directly in WhisperModels/
         if fileManager.fileExists(atPath: whisperModelsURL.appendingPathComponent("config.json").path) {
             return whisperModelsURL
         }
         
-        // Scenario B: Wrapped in a subfolder inside WhisperModels/ (e.g. CustomDysarthriaModel/)
-        if let contents = try? fileManager.contentsOfDirectory(at: whisperModelsURL, includingPropertiesForKeys: nil) {
-            for item in contents {
-                var isDir: ObjCBool = false
-                if fileManager.fileExists(atPath: item.path, isDirectory: &isDir), isDir.boolValue {
-                    if fileManager.fileExists(atPath: item.appendingPathComponent("config.json").path) {
-                        return item
-                    }
+        // Scenario B: Wrapped in a subfolder inside WhisperModels/ (or nested up to 2 levels)
+        if let enumerator = fileManager.enumerator(at: whisperModelsURL, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) {
+            for case let fileURL as URL in enumerator {
+                if fileURL.lastPathComponent == "config.json" && !fileURL.path.contains("__MACOSX") {
+                    return fileURL.deletingLastPathComponent()
                 }
             }
         }
@@ -226,6 +253,7 @@ extension TokenService: URLSessionDownloadDelegate {
             }
             
             try fileManager.createDirectory(at: whisperModelsURL, withIntermediateDirectories: true)
+            excludeFromBackup(url: whisperModelsURL)
             
             // Extract ZIP file using ZIPFoundation extension on FileManager
             try fileManager.unzipItem(at: location, to: whisperModelsURL)
@@ -233,6 +261,8 @@ extension TokenService: URLSessionDownloadDelegate {
             // Scan for the newly unzipped model configuration
             if let modelDir = findModelDirectory() {
                 let modelName = modelDir.lastPathComponent
+                // Purge base model cache to keep only one speech model on disk
+                deleteBaseModelCache()
                 updateStatus(.active(modelName: modelName))
             } else {
                 updateStatus(.error("Archive extracted but could not locate config.json in files."))

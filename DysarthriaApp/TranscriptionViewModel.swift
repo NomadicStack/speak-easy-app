@@ -18,6 +18,9 @@ class TranscriptionViewModel: ObservableObject {
     @Published var modelLoadingMessage: String = "Loading model..."
     @Published var isModelLoaded: Bool = false
     
+    @Published var currentModelDisplay: String = "Whisper Small"
+    @Published var isCustomModel: Bool = false
+    
     // Stats and Feedback
     @Published var totalTranscriptions: Int = 0
     @Published var totalCorrections: Int = 0
@@ -28,6 +31,7 @@ class TranscriptionViewModel: ObservableObject {
     private var whisperKit: WhisperKit?
     private let correctionsKey = "saved_corrections"
     private var cancellables = Set<AnyCancellable>()
+    private var isInitializing = false
     
     init() {
         self.totalTranscriptions = UserDefaults.standard.integer(forKey: "total_transcriptions")
@@ -36,22 +40,30 @@ class TranscriptionViewModel: ObservableObject {
         // Always start loading a model immediately on launch
         Task { await self.initializeWhisperKit() }
         
-        // Listen for custom model activation — reinitialize WhisperKit when activated
+        // Listen for custom model activation or removal — reinitialize WhisperKit
         TokenService.shared.$status
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
                 guard let self = self else { return }
-                if case .active = status {
-                    // Custom model was just activated — reinitialize with it
+                switch status {
+                case .active, .none:
+                    // Custom model was activated or deactivated — reinitialize model
                     if !self.isTranscribing {
                         Task { await self.initializeWhisperKit() }
                     }
+                default:
+                    break
                 }
             }
             .store(in: &cancellables)
     }
     
     func initializeWhisperKit() async {
+        guard !isInitializing else { return }
+        isInitializing = true
+        defer { isInitializing = false }
+        
         self.isModelLoaded = false
         self.whisperKit = nil
         
@@ -75,7 +87,12 @@ class TranscriptionViewModel: ObservableObject {
                 
                 self.whisperKit = try await WhisperKit(config)
                 self.isModelLoaded = true
+                self.isCustomModel = true
+                self.currentModelDisplay = modelName
                 self.modelLoadingMessage = "Model ready (\(modelName))"
+                
+                // Purge base model cache to conserve device storage
+                TokenService.shared.deleteBaseModelCache()
                 return
             } catch {
                 print("Custom model failed, falling back to free model: \(error)")
@@ -97,6 +114,8 @@ class TranscriptionViewModel: ObservableObject {
             
             self.whisperKit = try await WhisperKit(config)
             self.isModelLoaded = true
+            self.isCustomModel = false
+            self.currentModelDisplay = "Whisper Small"
             self.modelLoadingMessage = "Model ready (Whisper Small)"
         } catch {
             self.modelLoadingMessage = "Failed to load model: \(error.localizedDescription)"

@@ -7,17 +7,19 @@ SpeakEasy is a specialized iPad application designed to bridge the communication
 - **Local AI Inference:** Both transcription and AI generation happen 100% on-device. No audio or text data ever leaves the device, ensuring total privacy.
 - **Accurate Transcription:** Uses Apple's Neural Engine via **WhisperKit** to transcribe dysarthric speech. By default, auto-downloads a free `openai_whisper-small` model from WhisperKit's public hub.
 - **Custom Model Import:** Users with a fine-tuned speech model can enter an access token in Settings to download and swap in their personalized Whisper model.
+- **Single-Model Storage Optimization:** SpeakEasy automatically maintains only one speech model on disk at a time (~460MB), purging cached base files when custom models are imported and restoring the base model when reverted.
+- **Transparent Model Indicator:** Real-time badge on the Transcribe tab displays the active model (`✓ Base (Whisper Small)` or `✨ Custom (ModelName)`).
 - **Smart Speak (AAC Expander):** Uses a local **Gemma 4 (2B)** LLM via Google's official **LiteRT-LM** (`LiteRTLM`) to expand shorthand phrases and quick-chip shortcuts into fully formed sentences.
 - **Accessibility-First UI:** Features massive typography, responsive iPad layouts, and customizable Quick Chips.
 - **Native Integration:** Spoken output via iPadOS Text-to-Speech (`AVSpeechSynthesizer`) and direct integration with the Messages app.
 
 ## Storage & Privacy
 
-SpeakEasy bundles and downloads AI models directly to the device to guarantee offline operation and data privacy.
+SpeakEasy downloads AI models directly to the device to guarantee offline operation and data privacy.
 
 - **App Size:** ~500 MB (base) + 2.6 GB (Gemma 4 2B)
 - **Model Sizes:** 
-    - Transcription: ~460 MB (Default Base `openai_whisper-small`, auto-downloaded on first launch) or Custom Fine-tuned Model
+    - Speech Transcription: ~460 MB (Only one active model stored on-device: Default Base `openai_whisper-small` or Custom Fine-tuned Model)
     - Smart Speak: ~2.6 GB (Gemma 4 2B INT4)
 - **Privacy:** Your voice recordings and transcripts are never uploaded to the cloud.
 

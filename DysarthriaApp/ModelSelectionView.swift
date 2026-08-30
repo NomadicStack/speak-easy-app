@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ModelSelectionView: View {
     @ObservedObject var modelManager = ModelManager.shared
+    @ObservedObject var tokenService = TokenService.shared
     @Environment(\.dismiss) var dismiss
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
@@ -198,17 +199,18 @@ struct ModelSelectionView: View {
                 .font(isPad ? .title3.bold() : .headline)
             }
             
-            // Custom Voice Model
-            Section(header: Text("Custom Voice Model").font(isPad ? .title3.bold() : .caption.bold())) {
-                if case .active(let modelName) = TokenService.shared.status {
+            // Speech Recognition Model Management
+            Section(header: Text("Speech Recognition Model").font(isPad ? .title3.bold() : .caption.bold()),
+                    footer: Text("SpeakEasy maintains only one speech model on device at a time to minimize storage usage.").font(isPad ? .body : .caption)) {
+                if case .active(let modelName) = tokenService.status {
                     HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                        Image(systemName: "sparkles.rectangle.stack.fill")
+                            .foregroundColor(.purple)
                             .font(isPad ? .title3 : .body)
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Active: \(modelName)")
                                 .font(isPad ? .title3.bold() : .headline)
-                            Text("Custom model is loaded for transcription")
+                            Text("Personalized custom model is active (Base cache cleared)")
                                 .font(isPad ? .headline : .caption)
                                 .foregroundColor(.secondary)
                         }
@@ -217,12 +219,27 @@ struct ModelSelectionView: View {
                     .padding(.vertical, isPad ? 10 : 5)
                     
                     Button(role: .destructive, action: {
-                        TokenService.shared.resetToken()
+                        tokenService.resetToken()
                     }) {
-                        Label("Remove Custom Model", systemImage: "trash")
+                        Label("Revert to Base Model (Whisper Small)", systemImage: "arrow.counterclockwise")
                             .font(isPad ? .title3 : .headline)
                     }
                 } else {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(isPad ? .title3 : .body)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Active: Whisper Small (Default)")
+                                .font(isPad ? .title3.bold() : .headline)
+                            Text("Standard open-source model")
+                                .font(isPad ? .headline : .caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, isPad ? 10 : 5)
+                    
                     NavigationLink {
                         TokenEntryView()
                     } label: {
@@ -233,7 +250,7 @@ struct ModelSelectionView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Import Custom Model")
                                     .font(isPad ? .title3.bold() : .headline)
-                                Text("Use an access token to download a custom speech model")
+                                Text("Use an access token to swap in a personalized model")
                                     .font(isPad ? .headline : .caption)
                                     .foregroundColor(.secondary)
                             }
@@ -261,7 +278,6 @@ struct ModelSelectionView: View {
                     dismiss()
                 }
                 .font(isPad ? .title3.bold() : .headline.bold())
-                .disabled(modelManager.selectedModelId == nil)
             }
         }
     }

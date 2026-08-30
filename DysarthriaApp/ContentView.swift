@@ -397,17 +397,17 @@ struct TranscriptionView: View {
 
                     Spacer()
 
-                    // Model Ready Badge in the middle
+                    // Active Speech Model Badge
                     HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
+                        Image(systemName: transcriptionVM.isCustomModel ? "sparkles.rectangle.stack.fill" : "checkmark.circle.fill")
                             .font(isPad ? .title3 : .caption)
-                        Text("Model Ready")
+                        Text(transcriptionVM.isCustomModel ? "Custom (\(transcriptionVM.currentModelDisplay))" : "Base (Whisper Small)")
                             .font(isPad ? .title3.bold() : .caption.bold())
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 15)
                     .padding(.vertical, 8)
-                    .background(Capsule().fill(Color.green))
+                    .background(Capsule().fill(transcriptionVM.isCustomModel ? Color.purple : Color.green))
 
                     Spacer()
 

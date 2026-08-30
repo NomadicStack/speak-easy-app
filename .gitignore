@@ -74,6 +74,7 @@ Temporary Items
 
 # Models and Large Assets
 DysarthriaApp/Models/
+Models/
 model/
 venv312/
 model_backups/

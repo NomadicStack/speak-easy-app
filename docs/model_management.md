@@ -55,7 +55,7 @@ Manages the top-level gating logic. It uses a `Group` within the `TabView` to sw
 The service has been updated to be dynamic:
 - It checks `ModelManager.shared.selectedModel` to find the current model's local path.
 - **Loading Diagnostics:** Added debug logging for file size and hex signatures to verify file integrity before initialization.
-- **Format Compatibility:** Uses the native `.litertlm` format supported by the **LiteRTLM-Swift** engine.
+- **Format Compatibility:** Uses the native `.litertlm` format supported by the **Google LiteRT-LM** engine.
 
 ## 4. Troubleshooting & Known Issues
 
@@ -63,20 +63,20 @@ The service has been updated to be dynamic:
 - **Issue:** Large models like Gemma 4 E2B require significant RAM.
 - **Fix:** Added the `increased-memory-limit` entitlement to the project.
 
-### LiteRTLM-Swift Transition
-- **Status:** Successfully migrated from MediaPipe `LlmInference` to the modern `LiteRTLM-Swift` framework, which natively supports `.litertlm` bundles.
-...
-1. **Add Library:** Add the `LiteRTLM-Swift` Swift Package.
-2. **Real URLs:** Update the placeholder URLs in `ModelManager` with real direct-download links for `.litertlm` models.
-3. **Inference Logic:** The `GemmaService` is fully integrated with `LiteRTLMEngine`.
+### Google LiteRT-LM Transition
+- **Status:** Migrated to Google's official **LiteRT-LM** (`google-ai-edge/LiteRT-LM`) Swift framework (`LiteRTLM`), providing native support for `.litertlm` bundles with GPU (Metal) and CPU backends.
+- **Steps:**
+1. **Add Library:** Add the `google-ai-edge/LiteRT-LM` Swift Package (`LiteRTLM` target).
+2. **Real URLs:** Update the URLs in `ModelManager` with direct-download links for `.litertlm` models.
+3. **Inference Logic:** `GemmaService` is integrated with `EngineConfig`, `Engine`, and `Conversation`.
 
-## 4. Testing & Simulation
+## 5. Testing & Simulation
 
 ### Simulated AI Mode
 To facilitate testing on environments that cannot support a 2.6GB local LLM (like the iPad Simulator), a **Simulated AI Mode** is available:
 
 - **Toggle:** Found in the **Model Selection (Brain Icon)** menu under "Testing & Debug".
-- **Behavior:** Bypasses `LiteRTLMEngine.load()` and `generate()`.
+- **Behavior:** Bypasses `Engine.initialize()` and `conversation.sendMessage()`.
 - **Logic:** 
   - Simulates a 1.5-second processing delay.
   - Returns 3 mock expansion sentences using the input shorthand.

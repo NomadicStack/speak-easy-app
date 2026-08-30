@@ -8,7 +8,7 @@ For individuals with dysarthria, the physical effort required to speak or type f
 
 ## Feature Overview
 
-The user speaks a highly abbreviated string of keywords (shorthand) into the SpeakEasy app. The fine-tuned WhisperKit transcribes this audio into raw text. The app leverages **Gemma 4 2B** locally via **LiteRTLM-Swift** to automatically generate 3 natural sentence variations based on the transcribed input.
+The user speaks a highly abbreviated string of keywords (shorthand) into the SpeakEasy app. The fine-tuned WhisperKit transcribes this audio into raw text. The app leverages **Gemma 4 2B** locally via Google's official **LiteRT-LM** (`LiteRTLM`) to automatically generate 3 natural sentence variations based on the transcribed input.
 
 **Iterative Refinement:** Users can record additional context, which is appended to the existing shorthand to regenerate more accurate variations.
 
@@ -19,11 +19,11 @@ The user speaks a highly abbreviated string of keywords (shorthand) into the Spe
 
 ---
 
-## On-Device Strategy: LiteRTLM-Swift
+## On-Device Strategy: Google LiteRT-LM
 
 ### Hardware Optimization (iPad Pro M4)
 - **Memory Management:** Uses the `increased-memory-limit` entitlement to access 5GB+ of the iPad's 8GB RAM.
-- **Backend:** Optimized for the **CPU/XNNPack** backend for stability on iOS 17+.
+- **Backend:** Metal GPU acceleration with automatic CPU fallback.
 
 ---
 

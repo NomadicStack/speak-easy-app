@@ -1,13 +1,13 @@
 import Foundation
 import Combine
 import SwiftUI
-import LiteRTLMSwift
+import LiteRTLM
 
 class GemmaService: ObservableObject {
     @Published var isModelLoaded: Bool = false
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     
-    private var engine: LiteRTLMEngine?
+    private var engine: Engine?
     
     func loadModel() async throws {
         if useSimulation {
@@ -22,23 +22,48 @@ class GemmaService: ObservableObject {
         
         await MainActor.run { isModelLoaded = false }
         
+        print("--- LiteRT-LM Loading Debug ---")
+        print("Model Path: \(localURL.path)")
+        
         do {
-            print("--- LiteRTLM Loading Debug ---")
-            print("Model Path: \(localURL.path)")
-            
-            let engine = LiteRTLMEngine(modelPath: localURL, backend: "cpu")
-            // LiteRTLM loading can be slow (5-10s)
-            try await engine.load()
+            print("Attempting Metal GPU acceleration...")
+            let config = try EngineConfig(
+                modelPath: localURL.path,
+                backend: .gpu,
+                maxNumTokens: 1024,
+                cacheDir: NSTemporaryDirectory()
+            )
+            let engine = Engine(engineConfig: config)
+            try await engine.initialize()
             
             await MainActor.run {
                 self.engine = engine
                 self.isModelLoaded = true
             }
-            print("LiteRTLM Model Loaded Successfully")
+            print("LiteRT-LM Model Loaded Successfully on GPU")
             print("---------------------------")
         } catch {
-            print("Failed to initialize LiteRTLM: \(error)")
-            throw error
+            print("GPU backend initialization failed: \(error.localizedDescription). Retrying with CPU backend...")
+            do {
+                let config = try EngineConfig(
+                    modelPath: localURL.path,
+                    backend: .cpu(),
+                    maxNumTokens: 1024,
+                    cacheDir: NSTemporaryDirectory()
+                )
+                let engine = Engine(engineConfig: config)
+                try await engine.initialize()
+                
+                await MainActor.run {
+                    self.engine = engine
+                    self.isModelLoaded = true
+                }
+                print("LiteRT-LM Model Loaded Successfully on CPU")
+                print("---------------------------")
+            } catch {
+                print("Failed to initialize LiteRT-LM on CPU: \(error)")
+                throw error
+            }
         }
     }
     
@@ -62,45 +87,36 @@ class GemmaService: ObservableObject {
             throw NSError(domain: "GemmaService", code: 2, userInfo: [NSLocalizedDescriptionKey: "No engine initialized"])
         }
         
-        // Optimized prompt for Gemma 2-2B (Gemma 4)
+        // Compact, high-accuracy prompt for Gemma 2-2B (Gemma 4)
         let prompt = """
         <|turn>user
-        # ROLE
-        You are a Speech-to-Intent Interpreter for \(userName). You translate noisy, fragmented transcripts (from a user with dysarthria) into clear, polished communication.
+        You are a Speech-to-Intent Interpreter for \(userName) (contacts: \(contacts)).
+        Decode the shorthand input into exactly 3 full first-person sentences.
 
-        # CONTEXT
-        - SPEAKER: \(userName)
-        - KEY CONTACTS: \(contacts)
-        - INPUT SOURCE: A Whisper model that often makes phonetic errors (e.g., "wada" for "water", "bus lay" for "bus is late").
+        Rules:
+        1. Write in first person ("I", "Can we", "Please").
+        2. Emojis have high priority: 🍕=pizza/hungry, 🏇=horse riding, 🚽=bathroom, 💧=water/thirsty.
+        3. Phonetic matching: decode noisy words (e.g. "wada" -> "water").
+        4. Contact names: ONLY include a name (Dad, Mom) if explicitly mentioned in the shorthand input. Never assume contact names.
+        5. Output ONLY 3 numbered sentences. No preamble or labels.
 
-        # TASK
-        Decode the "Input" shorthand. Even if the words are misspelled or fragmented, infer the most likely communicative intent using the SPEAKER and CONTACTS provided.
-
-        # CORE RULES
-        1. PHONETIC DECODING: If a word looks wrong, think of what it SOUNDS like.
-        2. EMOJI INTERPRETATION: Emojis are high-signal intent markers. Interpret them literally (e.g., "🏀" = basketball/playing, "🍕" = hungry/pizza). If an emoji is present, prioritize its meaning.
-        3. BE THE VOICE: Write in the first person ("I", "Me", "My").
-        4. NO META-TALK: Output ONLY the 3 sentences as a numbered list. No preamble.
-
-        # OUTPUT STYLE (Provide 3 distinct options)
-        1. DIRECT: Short, high-speed, urgent (e.g., "I need water.")
-        2. NATURAL: A complete, polite sentence (e.g., "Could you please bring me some water?")
-        3. MESSAGING: Optimized for SMS, using contact names if relevant (e.g., "Hey Dad, could you bring me some water?")
-
-        # EXAMPLES
-        - Input: "🏀" -> Output: 1. I want to play basketball. 2. Can we go play some basketball? 3. Is it time for basketball?
-        - Input: "wada" -> Output: 1. I need water. 2. Could you please bring me some water? 3. Hey Dad, can I have some water?
-        - Input: "🍕 mom" -> Output: 1. Mom, I'm hungry for pizza. 2. Mom, can we order pizza? 3. Hey Mom, let's have pizza for dinner.
+        Examples:
+        - 🏀 -> 1. I want to play basketball. 2. Can we go play basketball? 3. Is it time for basketball?
+        - 🏇 -> 1. I want to go horse riding. 2. Can we go for a horse ride? 3. I'd love to ride horses today.
+        - wada -> 1. I need water. 2. Could you please bring me water? 3. May I have a glass of water?
+        - 🍕 hungry -> 1. I am hungry for pizza. 2. Can we order pizza? 3. Let's get pizza for dinner.
+        - 👨‍🦱 dad 🚽 bathroom -> 1. Dad, I need the bathroom. 2. Dad, can you help me to the bathroom? 3. Dad, please assist me to the restroom.
+        - 🍕 mom -> 1. Mom, I'm hungry for pizza. 2. Mom, can we order pizza? 3. Hey Mom, let's have pizza tonight.
 
         Input: "\(shorthand)"
         <turn|>
         <|turn>model
         """
         
-        return try await engine.generate(
-            prompt: prompt,
-            temperature: 0.6,
-            maxTokens: 512
-        )
+        let samplerConfig = try? SamplerConfig(topK: 40, topP: 0.95, temperature: 0.6)
+        let convConfig = ConversationConfig(samplerConfig: samplerConfig)
+        let conversation = try await engine.createConversation(with: convConfig)
+        let response = try await conversation.sendMessage(Message(prompt))
+        return response.toString
     }
 }

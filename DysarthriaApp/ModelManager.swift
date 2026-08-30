@@ -30,7 +30,7 @@ class ModelManager: NSObject, ObservableObject {
         ModelInfo(
             id: "gemma-4-e2b-it",
             name: "Gemma 4 E2B IT",
-            description: "New Gemma 4 model optimized for LiteRTLM-Swift.",
+            description: "New Gemma 4 model optimized for Google LiteRT-LM.",
             url: URL(string: "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm")!,
             filename: "gemma-4-E2B-it.litertlm",
             sizeDisplay: "2.6 GB"

@@ -7,7 +7,7 @@ SpeakEasy is a specialized iPad application designed to bridge the communication
 - **Local AI Inference:** Both transcription and AI generation happen 100% on-device. No audio or text data ever leaves the device, ensuring total privacy.
 - **Accurate Transcription:** Uses Apple's Neural Engine and a custom fine-tuned Whisper model via **WhisperKit** to transcribe dysarthric speech. Gated behind a token-based access control system for secure model provisioning.
 - **Paid Token Access Control:** Dynamic backend-verified token checking that downloads the user's custom fine-tuned Whisper model over HTTPS and extracts it locally for offline ASR capability.
-- **Smart Speak (AAC Expander):** Uses a local **Gemma 4 (2B)** LLM via **LiteRTLMSwift** to expand shorthand phrases and quick-chip shortcuts into fully formed sentences.
+- **Smart Speak (AAC Expander):** Uses a local **Gemma 4 (2B)** LLM via Google's official **LiteRT-LM** (`LiteRTLM`) to expand shorthand phrases and quick-chip shortcuts into fully formed sentences.
 - **Accessibility-First UI:** Features massive typography, responsive iPad layouts, and customizable Quick Chips.
 - **Native Integration:** Spoken output via iPadOS Text-to-Speech (`AVSpeechSynthesizer`) and direct integration with the Messages app.
 
@@ -26,7 +26,7 @@ SpeakEasy bundles custom AI models directly within the app to guarantee offline 
 - **Language:** Swift 5.10+ & Python 3 (for ML)
 - **Framework:** SwiftUI
 - **Transcription Engine:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) (CoreML)
-- **LLM Engine:** [LiteRTLMSwift](https://github.com/mylovelycodes/LiteRTLM-Swift) (Apple Silicon optimized C++ wrapper)
+- **LLM Engine:** [Google LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) ([Documentation](https://developers.google.com/edge/litert-lm/swift))
 - **Minimum OS:** iPadOS 17.0+
 - **Recommended Hardware:** iPad with M-series chip.
 
@@ -53,7 +53,7 @@ SpeakEasy bundles custom AI models directly within the app to guarantee offline 
 2. Open `DysarthriaApp.xcodeproj` in Xcode.
 3. Add the required dependencies via Swift Package Manager:
    - WhisperKit: `https://github.com/argmaxinc/argmax-oss-swift`
-   - LiteRTLMSwift: `https://github.com/mylovelycodes/LiteRTLM-Swift`
+   - LiteRT-LM: `https://github.com/google-ai-edge/LiteRT-LM`
 4. Configure Microphone permissions in `Info.plist` (`NSMicrophoneUsageDescription`).
 5. Build and Run (**Cmd + R**).
 

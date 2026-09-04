@@ -1,4 +1,6 @@
 import Foundation
+import Combine
+import SwiftUI
 
 public struct PromptCard: Identifiable, Codable, Equatable {
     public var id: UUID
@@ -12,159 +14,191 @@ public struct PromptCard: Identifiable, Codable, Equatable {
     }
 }
 
-public struct PromptDeck: Identifiable, Equatable {
+public struct PromptDeck: Identifiable, Codable, Equatable {
     public var id: String
     public var title: String
     public var description: String
     public var icon: String
     public var cards: [PromptCard]
     public var isCustom: Bool
+    public var isLocked: Bool
     
-    public init(id: String, title: String, description: String, icon: String, cards: [PromptCard], isCustom: Bool = false) {
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, icon, cards, isCustom, isLocked
+    }
+    
+    public init(
+        id: String = UUID().uuidString,
+        title: String,
+        description: String = "",
+        icon: String = "folder.fill",
+        cards: [PromptCard] = [],
+        isCustom: Bool = false,
+        isLocked: Bool = false
+    ) {
         self.id = id
         self.title = title
         self.description = description
         self.icon = icon
         self.cards = cards
         self.isCustom = isCustom
+        self.isLocked = isLocked
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.title = try container.decode(String.self, forKey: .title)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
+        self.icon = try container.decodeIfPresent(String.self, forKey: .icon) ?? "folder.fill"
+        self.cards = try container.decodeIfPresent([PromptCard].self, forKey: .cards) ?? []
+        self.isCustom = try container.decodeIfPresent(Bool.self, forKey: .isCustom) ?? false
+        self.isLocked = try container.decodeIfPresent(Bool.self, forKey: .isLocked) ?? false
     }
 }
 
-public final class PromptDeckProvider {
+public final class PromptDeckProvider: ObservableObject {
     public static let shared = PromptDeckProvider()
     
+    /// Single curated 10-phrase example deck
+    public static let exampleDeck = PromptDeck(
+        id: "daily_essentials",
+        title: "Daily Essentials",
+        description: "Example 10-phrase deck for everyday assistance and needs.",
+        icon: "star.fill",
+        cards: [
+            PromptCard(text: "I need a glass of water please.", category: "daily_essentials"),
+            PromptCard(text: "Please help me sit up.", category: "daily_essentials"),
+            PromptCard(text: "I am feeling too cold.", category: "daily_essentials"),
+            PromptCard(text: "Can you adjust my pillow?", category: "daily_essentials"),
+            PromptCard(text: "It is time for my medicine.", category: "daily_essentials"),
+            PromptCard(text: "I would like something to eat.", category: "daily_essentials"),
+            PromptCard(text: "Please turn on the light.", category: "daily_essentials"),
+            PromptCard(text: "I need to use the restroom.", category: "daily_essentials"),
+            PromptCard(text: "Could you open the window?", category: "daily_essentials"),
+            PromptCard(text: "Thank you for your help.", category: "daily_essentials")
+        ],
+        isCustom: false
+    )
+    
     public var allDecks: [PromptDeck] {
-        var decks = defaultDecks
-        if let customDeck = customDeck, !customDeck.cards.isEmpty {
-            decks.append(customDeck)
-        }
+        var decks = [PromptDeckProvider.exampleDeck]
+        decks.append(contentsOf: CustomDeckStore.shared.decks)
         return decks
     }
-    
-    public var customDeck: PromptDeck? {
-        let cards = CustomDeckStore.shared.loadCards()
-        guard !cards.isEmpty else { return nil }
-        return PromptDeck(
-            id: "custom_caregiver",
-            title: "Custom Phrases",
-            description: "Personalized phrases added by you or your caregiver (\(cards.count) phrases)",
-            icon: "person.badge.plus",
-            cards: cards,
-            isCustom: true
-        )
-    }
-    
-    /// Pre-defined standard decks with exactly 10 phrases each to prevent vocal fatigue
-    public let defaultDecks: [PromptDeck] = [
-        PromptDeck(
-            id: "daily_essentials",
-            title: "Daily Essentials",
-            description: "High-priority requests for water, medicine, comfort, and immediate assistance.",
-            icon: "drop.fill",
-            cards: [
-                PromptCard(text: "I need a glass of water please.", category: "daily_essentials"),
-                PromptCard(text: "Please help me sit up.", category: "daily_essentials"),
-                PromptCard(text: "I am feeling too cold.", category: "daily_essentials"),
-                PromptCard(text: "Can you adjust my pillow?", category: "daily_essentials"),
-                PromptCard(text: "It is time for my medicine.", category: "daily_essentials"),
-                PromptCard(text: "I would like something to eat.", category: "daily_essentials"),
-                PromptCard(text: "Please turn on the light.", category: "daily_essentials"),
-                PromptCard(text: "I need to use the restroom.", category: "daily_essentials"),
-                PromptCard(text: "Could you open the window?", category: "daily_essentials"),
-                PromptCard(text: "Thank you for your help.", category: "daily_essentials")
-            ]
-        ),
-        PromptDeck(
-            id: "home_comfort",
-            title: "Home & Assistance",
-            description: "Everyday requests for devices, room control, and restful comfort.",
-            icon: "house.fill",
-            cards: [
-                PromptCard(text: "Please turn down the volume.", category: "home_comfort"),
-                PromptCard(text: "Where is my phone?", category: "home_comfort"),
-                PromptCard(text: "Can you close the door?", category: "home_comfort"),
-                PromptCard(text: "I want to rest for a while.", category: "home_comfort"),
-                PromptCard(text: "Please plug in my charger.", category: "home_comfort"),
-                PromptCard(text: "Can I have some ice?", category: "home_comfort"),
-                PromptCard(text: "I am ready for bed now.", category: "home_comfort"),
-                PromptCard(text: "Please call my caregiver.", category: "home_comfort"),
-                PromptCard(text: "What time is it right now?", category: "home_comfort"),
-                PromptCard(text: "Everything is okay right now.", category: "home_comfort")
-            ]
-        ),
-        PromptDeck(
-            id: "conversation_greetings",
-            title: "Greetings & Social",
-            description: "Common social interactions, positive responses, and polite conversation.",
-            icon: "bubble.left.and.bubble.right.fill",
-            cards: [
-                PromptCard(text: "Good morning, how are you?", category: "conversation"),
-                PromptCard(text: "Yes, that sounds good to me.", category: "conversation"),
-                PromptCard(text: "No, I do not want that.", category: "conversation"),
-                PromptCard(text: "I agree with what you said.", category: "conversation"),
-                PromptCard(text: "Can you repeat that please?", category: "conversation"),
-                PromptCard(text: "It is very nice to see you.", category: "conversation"),
-                PromptCard(text: "I am feeling much better today.", category: "conversation"),
-                PromptCard(text: "Have a wonderful afternoon.", category: "conversation"),
-                PromptCard(text: "I will see you tomorrow.", category: "conversation"),
-                PromptCard(text: "Thank you, goodbye.", category: "conversation")
-            ]
-        ),
-        PromptDeck(
-            id: "health_pain",
-            title: "Health & Well-being",
-            description: "Important phrases for communicating pain, physical fatigue, and doctor needs.",
-            icon: "heart.text.square.fill",
-            cards: [
-                PromptCard(text: "I am feeling pain right now.", category: "health_pain"),
-                PromptCard(text: "My back is hurting a lot.", category: "health_pain"),
-                PromptCard(text: "I am feeling very dizzy.", category: "health_pain"),
-                PromptCard(text: "Please call the doctor.", category: "health_pain"),
-                PromptCard(text: "I need help immediately.", category: "health_pain"),
-                PromptCard(text: "I cannot reach my call button.", category: "health_pain"),
-                PromptCard(text: "I am having trouble swallowing.", category: "health_pain"),
-                PromptCard(text: "Please check my blood pressure.", category: "health_pain"),
-                PromptCard(text: "I feel uncomfortable here.", category: "health_pain"),
-                PromptCard(text: "Please stay with me for a bit.", category: "health_pain")
-            ]
-        )
-    ]
 }
 
-/// Helper store for custom caregiver / user phrases
+/// Helper store for custom user/caregiver decks organized by group name and phrases
 public final class CustomDeckStore: ObservableObject {
     public static let shared = CustomDeckStore()
-    private let storageKey = "custom_training_cards_v1"
+    private let storageKey = "custom_training_decks_v2"
+    private let legacyStorageKey = "custom_training_cards_v1"
     
-    @Published public var cards: [PromptCard] = []
+    @Published public var decks: [PromptDeck] = []
     
     private init() {
-        self.cards = loadCards()
+        self.decks = loadDecks()
     }
     
-    public func loadCards() -> [PromptCard] {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let decoded = try? JSONDecoder().decode([PromptCard].self, from: data) else {
-            return []
+    public func loadDecks() -> [PromptDeck] {
+        if let data = UserDefaults.standard.data(forKey: storageKey),
+           let decoded = try? JSONDecoder().decode([PromptDeck].self, from: data) {
+            return decoded
         }
-        return decoded
+        
+        // Migration: check legacy single-card-list store
+        if let data = UserDefaults.standard.data(forKey: legacyStorageKey),
+           let legacyCards = try? JSONDecoder().decode([PromptCard].self, from: data),
+           !legacyCards.isEmpty {
+            let migrated = PromptDeck(
+                id: "custom_my_phrases",
+                title: "Custom Phrases",
+                description: "\(legacyCards.count) phrases",
+                icon: "folder.fill",
+                cards: legacyCards,
+                isCustom: true
+            )
+            let initial = [migrated]
+            if let encoded = try? JSONEncoder().encode(initial) {
+                UserDefaults.standard.set(encoded, forKey: storageKey)
+            }
+            return initial
+        }
+        
+        return []
     }
     
-    public func addCard(text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        cards.append(PromptCard(text: trimmed, category: "custom"))
+    @discardableResult
+    public func createDeck(groupName: String, icon: String = "folder.fill") -> PromptDeck? {
+        let trimmed = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let slug = trimmed.lowercased().components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: "_")
+        let prefix = slug.isEmpty ? "group" : String(slug.prefix(20))
+        let deckId = "custom_\(prefix)_\(UUID().uuidString.prefix(6).lowercased())"
+        let newDeck = PromptDeck(
+            id: deckId,
+            title: trimmed,
+            description: "0 phrases",
+            icon: icon,
+            cards: [],
+            isCustom: true
+        )
+        decks.append(newDeck)
+        save()
+        return newDeck
+    }
+    
+    public func deleteDeck(id: String) {
+        decks.removeAll { $0.id == id }
         save()
     }
     
-    public func deleteCard(at indexSet: IndexSet) {
-        cards.remove(atOffsets: indexSet)
+    public func deleteDeck(at indexSet: IndexSet) {
+        decks.remove(atOffsets: indexSet)
+        save()
+    }
+    
+    public func lockDeck(id: String) {
+        guard let index = decks.firstIndex(where: { $0.id == id }) else { return }
+        decks[index].isLocked = true
+        save()
+    }
+    
+    public func unlockDeck(id: String) {
+        guard let index = decks.firstIndex(where: { $0.id == id }) else { return }
+        decks[index].isLocked = false
+        save()
+    }
+    
+    public func addPhrase(toDeckId deckId: String, text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let index = decks.firstIndex(where: { $0.id == deckId }) else { return }
+        // Guard: Cannot add phrases to a locked group
+        guard !decks[index].isLocked else { return }
+        
+        let card = PromptCard(text: trimmed, category: decks[index].id)
+        decks[index].cards.append(card)
+        let count = decks[index].cards.count
+        decks[index].description = "\(count) \(count == 1 ? "phrase" : "phrases")"
+        save()
+    }
+    
+    public func deletePhrase(fromDeckId deckId: String, at indexSet: IndexSet) {
+        guard let index = decks.firstIndex(where: { $0.id == deckId }) else { return }
+        // Guard: Cannot delete phrases from a locked group
+        guard !decks[index].isLocked else { return }
+        decks[index].cards.remove(atOffsets: indexSet)
+        let count = decks[index].cards.count
+        decks[index].description = "\(count) \(count == 1 ? "phrase" : "phrases")"
         save()
     }
     
     private func save() {
-        if let encoded = try? JSONEncoder().encode(cards) {
+        if let encoded = try? JSONEncoder().encode(decks) {
             UserDefaults.standard.set(encoded, forKey: storageKey)
         }
+        objectWillChange.send()
+        PromptDeckProvider.shared.objectWillChange.send()
     }
 }

@@ -17,6 +17,8 @@ public struct VoiceStudioView: View {
     @State private var isShowingMailView = false
     @State private var isShowingShareSheet = false
     @State private var isShowingCustomDeckEditor = false
+    @State private var isShowingResetConfirmation = false
+    @State private var selectedDeckForDetail: PromptDeck? = nil
     @State private var preparedZipURL: URL? = nil
     @State private var mailSubject = ""
     @State private var mailBody = ""
@@ -50,13 +52,25 @@ public struct VoiceStudioView: View {
                         preferredSenderEmail: nil
                     ) { result in
                         if case .success(let mailResult) = result, mailResult == .sent {
-                            sessionManager.clearActiveSessionFiles()
+                            if zipURL.lastPathComponent.contains("Corrections") {
+                                sessionManager.clearLiveCorrections()
+                            } else {
+                                if let deckId = sessionManager.activeDeck?.id {
+                                    customStore.lockDeck(id: deckId)
+                                }
+                            }
                         }
                     }
                 }
             }
             .sheet(isPresented: $isShowingCustomDeckEditor) {
                 CustomDeckEditorView(customStore: customStore, isPad: isPad)
+            }
+            .sheet(item: $selectedDeckForDetail) { deck in
+                NavigationView {
+                    DeckPhrasesDetailView(deckId: deck.id, customStore: customStore, isPad: isPad)
+                }
+                .navigationViewStyle(.stack)
             }
         }
         .navigationViewStyle(.stack)
@@ -74,9 +88,9 @@ public struct VoiceStudioView: View {
                             .foregroundColor(.blue)
                         Spacer()
                         
-                        // Custom phrases action
+                        // Custom decks management
                         Button(action: { isShowingCustomDeckEditor = true }) {
-                            Label("Custom Phrases", systemImage: "pencil.circle.fill")
+                            Label("Manage Decks", systemImage: "folder.badge.plus")
                                 .font(isPad ? .title3.bold() : .subheadline.bold())
                                 .foregroundColor(.blue)
                                 .padding(.horizontal, 14)
@@ -86,7 +100,7 @@ public struct VoiceStudioView: View {
                         }
                     }
                     
-                    Text("Train your personalized speech recognition model in bite-sized, 10-phrase sessions. Choose a deck below to begin recording.")
+                    Text("Train your personalized speech recognition model in focused sessions. Select an example deck or create your own custom group.")
                         .font(isPad ? .title3 : .subheadline)
                         .foregroundColor(.secondary)
                         .lineSpacing(4)
@@ -102,16 +116,34 @@ public struct VoiceStudioView: View {
                 
                 // Decks List
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Select a 10-Phrase Training Deck")
-                        .font(isPad ? .title2.bold() : .headline.bold())
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, isPad ? 40 : 20)
+                    HStack {
+                        Text("Select a Training Deck")
+                            .font(isPad ? .title2.bold() : .headline.bold())
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        Button(action: { isShowingCustomDeckEditor = true }) {
+                            Label("New Deck", systemImage: "plus.circle.fill")
+                                .font(isPad ? .headline.bold() : .subheadline.bold())
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.horizontal, isPad ? 40 : 20)
                     
                     LazyVStack(spacing: isPad ? 20 : 15) {
                         ForEach(deckProvider.allDecks) { deck in
-                            DeckCardRow(deck: deck, isPad: isPad) {
-                                sessionManager.startSession(with: deck)
-                            }
+                            DeckCardRow(
+                                deck: deck,
+                                recordedCount: sessionManager.recordedSampleCount(for: deck.id),
+                                isPad: isPad,
+                                onStart: {
+                                    sessionManager.startSession(with: deck)
+                                },
+                                onManage: deck.isCustom ? {
+                                    selectedDeckForDetail = deck
+                                } : nil
+                            )
                         }
                     }
                     .padding(.horizontal, isPad ? 40 : 20)
@@ -191,13 +223,34 @@ public struct VoiceStudioView: View {
                 Spacer()
                 
                 if let deck = sessionManager.activeDeck {
-                    VStack(alignment: .trailing, spacing: 2) {
+                    VStack(alignment: .trailing, spacing: 4) {
                         Text(deck.title)
                             .font(isPad ? .headline : .subheadline)
                             .foregroundColor(.secondary)
-                        Text("Phrase \(sessionManager.currentCardIndex + 1) of \(deck.cards.count)")
-                            .font(isPad ? .title3.bold() : .headline.bold())
-                            .foregroundColor(.blue)
+                        
+                        HStack(spacing: 8) {
+                            Button(action: {
+                                sessionManager.previousCard()
+                            }) {
+                                Image(systemName: "chevron.left.circle.fill")
+                                    .font(isPad ? .title2 : .title3)
+                                    .foregroundColor(sessionManager.currentCardIndex > 0 ? .blue : Color.gray.opacity(0.3))
+                            }
+                            .disabled(sessionManager.currentCardIndex == 0)
+                            
+                            Text("Phrase \(sessionManager.currentCardIndex + 1) of \(deck.cards.count)")
+                                .font(isPad ? .title3.bold() : .headline.bold())
+                                .foregroundColor(.blue)
+                            
+                            Button(action: {
+                                sessionManager.nextCard()
+                            }) {
+                                Image(systemName: "chevron.right.circle.fill")
+                                    .font(isPad ? .title2 : .title3)
+                                    .foregroundColor(sessionManager.currentCardIndex + 1 < deck.cards.count ? .blue : Color.gray.opacity(0.3))
+                            }
+                            .disabled(sessionManager.currentCardIndex + 1 >= deck.cards.count)
+                        }
                     }
                 }
             }
@@ -210,7 +263,22 @@ public struct VoiceStudioView: View {
                 .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                 .scaleEffect(x: 1, y: isPad ? 3 : 2, anchor: .center)
                 .padding(.horizontal, isPad ? 40 : 20)
-                .padding(.bottom, isPad ? 25 : 15)
+                .padding(.bottom, isPad ? 15 : 10)
+            
+            // Fatigue Checkpoint / Break Reminder at Halfway Mark
+            if let deck = sessionManager.activeDeck, deck.cards.count >= 4, sessionManager.currentCardIndex == deck.cards.count / 2 {
+                HStack(spacing: 8) {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .foregroundColor(.orange)
+                    Text("Halfway there! Take a breath or pause if you feel tired.")
+                        .font(isPad ? .headline : .caption.bold())
+                        .foregroundColor(.orange)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color.orange.opacity(0.12)))
+                .padding(.bottom, 12)
+            }
             
             // Main Prompt Card
             if let card = sessionManager.currentCard {
@@ -226,21 +294,37 @@ public struct VoiceStudioView: View {
                         .lineSpacing(isPad ? 8 : 4)
                         .minimumScaleFactor(0.7)
                     
-                    // TTS "Listen to Prompt" Button
-                    Button(action: {
-                        sessionManager.speakCurrentPrompt()
-                    }) {
-                        HStack(spacing: 10) {
-                            Image(systemName: sessionManager.isSpeakingPrompt ? "speaker.wave.3.fill" : "speaker.wave.2.fill")
-                                .font(isPad ? .title2 : .headline)
-                            Text(sessionManager.isSpeakingPrompt ? "Playing Example..." : "Listen to Prompt")
-                                .font(isPad ? .title3.bold() : .headline)
+                    // Action Buttons (TTS Preview & Recorded Badge)
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            sessionManager.speakCurrentPrompt()
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: sessionManager.isSpeakingPrompt ? "speaker.wave.3.fill" : "speaker.wave.2.fill")
+                                    .font(isPad ? .title2 : .headline)
+                                Text(sessionManager.isSpeakingPrompt ? "Playing Example..." : "Listen to Prompt")
+                                    .font(isPad ? .title3.bold() : .headline)
+                            }
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, isPad ? 22 : 16)
+                            .padding(.vertical, isPad ? 12 : 10)
+                            .background(Color.blue.opacity(0.12))
+                            .cornerRadius(25)
                         }
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, isPad ? 24 : 16)
-                        .padding(.vertical, isPad ? 14 : 10)
-                        .background(Color.blue.opacity(0.12))
-                        .cornerRadius(25)
+                        
+                        if sessionManager.isCurrentCardRecorded {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Recorded")
+                                    .font(isPad ? .title3.bold() : .subheadline.bold())
+                                    .foregroundColor(.green)
+                            }
+                            .padding(.horizontal, isPad ? 18 : 12)
+                            .padding(.vertical, isPad ? 12 : 10)
+                            .background(Color.green.opacity(0.12))
+                            .cornerRadius(25)
+                        }
                     }
                     
                     Spacer()
@@ -253,7 +337,7 @@ public struct VoiceStudioView: View {
                             .font(isPad ? .title3.bold() : .subheadline.bold())
                             .foregroundColor(.red)
                     } else if sessionManager.hasRecordedCurrentCard {
-                        Text("Recorded! Listen back or move to the next phrase.")
+                        Text("Recorded (\(String(format: "%.1fs", sessionManager.currentRecordingDuration)))! Listen back or move to the next phrase.")
                             .font(isPad ? .headline : .subheadline)
                             .foregroundColor(.green)
                     } else {
@@ -390,7 +474,7 @@ public struct VoiceStudioView: View {
                         .font(.system(size: isPad ? 38 : 28, weight: .bold))
                         .foregroundColor(.primary)
                     
-                    Text("You have successfully recorded 10 phrases for your voice profile.")
+                    Text("\(sessionManager.recordedSamples.count) phrases recorded (\(totalAudioDurationFormatted) total audio) for your voice profile.")
                         .font(isPad ? .title3 : .body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -399,32 +483,55 @@ public struct VoiceStudioView: View {
                 
                 // Recorded Phrases Summary List
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recorded Phrases")
-                        .font(isPad ? .title3.bold() : .headline)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 10)
+                    HStack {
+                        Text("Recorded Phrases (\(sessionManager.recordedSamples.count))")
+                            .font(isPad ? .title3.bold() : .headline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("Tap to play back")
+                            .font(isPad ? .subheadline : .caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 10)
                     
-                    ForEach(Array(sessionManager.recordedSamples.enumerated()), id: \.offset) { index, sample in
+                    ForEach(Array(sessionManager.recordedSamples.enumerated()), id: \.element.id) { index, sample in
+                        let isPlayingThis = sessionManager.isPlaying && sessionManager.playingSampleId == sample.id
                         HStack(spacing: 12) {
                             Text("\(index + 1).")
                                 .font(isPad ? .headline.bold() : .subheadline.bold())
                                 .foregroundColor(.blue)
-                                .frame(width: 30, alignment: .leading)
+                                .frame(width: 28, alignment: .leading)
                             
-                            Text(sample.card.text)
-                                .font(isPad ? .headline : .subheadline)
-                                .lineLimit(2)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(sample.card.text)
+                                    .font(isPad ? .headline : .subheadline)
+                                    .lineLimit(2)
+                                Text(String(format: "%.1fs audio", sample.duration))
+                                    .font(isPad ? .subheadline : .caption)
+                                    .foregroundColor(.secondary)
+                            }
                             
                             Spacer()
                             
-                            Text(String(format: "%.1fs", sample.duration))
-                                .font(isPad ? .subheadline : .caption)
-                                .foregroundColor(.secondary)
+                            Button(action: {
+                                sessionManager.playSample(sample)
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: isPlayingThis ? "stop.fill" : "play.fill")
+                                    Text(isPlayingThis ? "Stop" : "Play")
+                                }
+                                .font(isPad ? .subheadline.bold() : .caption.bold())
+                                .foregroundColor(isPlayingThis ? .white : .blue)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(isPlayingThis ? Color.red : Color.blue.opacity(0.12))
+                                .cornerRadius(10)
+                            }
                         }
                         .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
+                        .padding(.horizontal, 14)
                         .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(10)
+                        .cornerRadius(12)
                     }
                 }
                 .padding(.horizontal, isPad ? 40 : 20)
@@ -467,14 +574,39 @@ public struct VoiceStudioView: View {
                     }
                     
                     // 3. Clear and Start Another
+                    if let deck = sessionManager.activeDeck, deck.isCustom {
+                        let isDeckLocked = customStore.decks.first(where: { $0.id == deck.id })?.isLocked ?? false
+                        HStack(spacing: 6) {
+                            Image(systemName: isDeckLocked ? "lock.fill" : "lock")
+                                .font(isPad ? .subheadline : .caption)
+                            Text(isDeckLocked ? "This group is locked to keep training data aligned." : "Sending will lock this group so no more phrases can be added.")
+                                .font(isPad ? .subheadline : .caption)
+                        }
+                        .foregroundColor(isDeckLocked ? .orange : .secondary)
+                        .padding(.top, 4)
+                    }
+                    
                     Button(action: {
-                        sessionManager.clearActiveSessionFiles()
                         sessionManager.exitSession()
                     }) {
-                        Text("Finish & Return to Decks")
-                            .font(isPad ? .headline : .subheadline)
+                        Text("Return to Decks")
+                            .font(isPad ? .title3.bold() : .headline.bold())
                             .foregroundColor(.secondary)
-                            .padding(.top, 10)
+                            .padding(.top, 8)
+                    }
+                    
+                    if sessionManager.activeDeck != nil {
+                        Button(role: .destructive, action: {
+                            isShowingResetConfirmation = true
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.counterclockwise")
+                                Text("Reset & Re-record Deck")
+                            }
+                            .font(isPad ? .subheadline : .caption)
+                            .foregroundColor(.red)
+                            .padding(.top, 4)
+                        }
                     }
                 }
                 .padding(.horizontal, isPad ? 40 : 20)
@@ -482,6 +614,28 @@ public struct VoiceStudioView: View {
             }
         }
         .background(Color(UIColor.systemGroupedBackground))
+        .alert("Reset Deck Recordings?", isPresented: $isShowingResetConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset All", role: .destructive) {
+                if let deckId = sessionManager.activeDeck?.id {
+                    sessionManager.resetDeckRecordings(deckId: deckId)
+                    sessionManager.exitSession()
+                }
+            }
+        } message: {
+            Text("This will delete all saved audio recordings for this deck so you can re-record from scratch.")
+        }
+    }
+    
+    private var totalAudioDurationFormatted: String {
+        let totalSeconds = Int(sessionManager.recordedSamples.reduce(0) { $0 + $1.duration })
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        if minutes > 0 {
+            return "\(minutes)m \(seconds)s"
+        } else {
+            return "\(seconds)s"
+        }
     }
     
     // MARK: - Email & Share Actions
@@ -537,6 +691,17 @@ public struct VoiceStudioView: View {
     
     private func presentShareSheet(for fileURL: URL) {
         let av = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+        av.completionWithItemsHandler = { activityType, completed, returnedItems, activityError in
+            if completed {
+                if fileURL.lastPathComponent.contains("Corrections") {
+                    sessionManager.clearLiveCorrections()
+                } else {
+                    if let deckId = sessionManager.activeDeck?.id {
+                        customStore.lockDeck(id: deckId)
+                    }
+                }
+            }
+        }
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootVC = windowScene.windows.first?.rootViewController {
             if let popover = av.popoverPresentationController {
@@ -552,36 +717,92 @@ public struct VoiceStudioView: View {
 // MARK: - Deck Card Row
 struct DeckCardRow: View {
     let deck: PromptDeck
+    let recordedCount: Int
     let isPad: Bool
     let onStart: () -> Void
+    var onManage: (() -> Void)? = nil
+    
+    var isFullyRecorded: Bool {
+        !deck.cards.isEmpty && recordedCount >= deck.cards.count
+    }
+    
+    var isPartiallyRecorded: Bool {
+        recordedCount > 0 && recordedCount < deck.cards.count
+    }
     
     var body: some View {
         HStack(spacing: isPad ? 22 : 16) {
             // Icon
             ZStack {
                 Circle()
-                    .fill(Color.blue.opacity(0.12))
+                    .fill(deck.isCustom ? Color.purple.opacity(0.12) : (isFullyRecorded ? Color.green.opacity(0.12) : Color.blue.opacity(0.12)))
                     .frame(width: isPad ? 70 : 50, height: isPad ? 70 : 50)
-                Image(systemName: deck.icon)
+                Image(systemName: isFullyRecorded ? "checkmark.circle.fill" : deck.icon)
                     .font(isPad ? .title : .title3)
-                    .foregroundColor(.blue)
+                    .foregroundColor(deck.isCustom ? (isFullyRecorded ? .green : .purple) : (isFullyRecorded ? .green : .blue))
             }
             
             // Info
             VStack(alignment: .leading, spacing: 5) {
-                HStack {
+                HStack(spacing: 8) {
                     Text(deck.title)
                         .font(isPad ? .title3.bold() : .headline.bold())
                     
+                    if !deck.isCustom {
+                        Text("Example")
+                            .font(.system(size: isPad ? 12 : 10, weight: .bold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
+                            .cornerRadius(6)
+                    } else if deck.isLocked {
+                        HStack(spacing: 3) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: isPad ? 10 : 8))
+                            Text("Locked")
+                                .font(.system(size: isPad ? 11 : 9, weight: .bold))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.12))
+                        .foregroundColor(.orange)
+                        .cornerRadius(6)
+                    }
+                    
                     Spacer()
                     
-                    Text("\(deck.cards.count) Phrases")
-                        .font(.system(size: isPad ? 14 : 11, weight: .bold))
+                    if isFullyRecorded {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                            Text("Done (\(deck.cards.count))")
+                        }
+                        .font(.system(size: isPad ? 13 : 10, weight: .bold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
+                        .background(Color.green.opacity(0.15))
+                        .foregroundColor(.green)
                         .cornerRadius(8)
+                    } else if isPartiallyRecorded {
+                        HStack(spacing: 4) {
+                            Image(systemName: "waveform")
+                            Text("\(recordedCount)/\(deck.cards.count) recorded")
+                        }
+                        .font(.system(size: isPad ? 13 : 10, weight: .bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundColor(.orange)
+                        .cornerRadius(8)
+                    } else {
+                        Text("\(deck.cards.count) Phrases")
+                            .font(.system(size: isPad ? 14 : 11, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.secondary.opacity(0.1))
+                            .foregroundColor(.secondary)
+                            .cornerRadius(8)
+                    }
                 }
                 
                 Text(deck.description)
@@ -592,15 +813,67 @@ struct DeckCardRow: View {
             
             Spacer()
             
-            // Start Button
-            Button(action: onStart) {
-                Text("Start")
-                    .font(isPad ? .title3.bold() : .headline.bold())
-                    .foregroundColor(.white)
-                    .padding(.horizontal, isPad ? 24 : 16)
-                    .padding(.vertical, isPad ? 12 : 8)
-                    .background(Color.blue)
-                    .cornerRadius(12)
+            HStack(spacing: 10) {
+                if let onManage = onManage {
+                    Button(action: onManage) {
+                        Image(systemName: deck.isLocked ? "lock.fill" : "pencil")
+                            .font(isPad ? .title3 : .headline)
+                            .foregroundColor(deck.isLocked ? .orange : .purple)
+                            .padding(isPad ? 12 : 8)
+                            .background((deck.isLocked ? Color.orange : Color.purple).opacity(0.1))
+                            .cornerRadius(10)
+                    }
+                }
+                
+                if deck.cards.isEmpty {
+                    if let onManage = onManage {
+                        Button(action: onManage) {
+                            Text("Add Phrases")
+                                .font(isPad ? .title3.bold() : .headline.bold())
+                                .foregroundColor(.white)
+                                .padding(.horizontal, isPad ? 18 : 12)
+                                .padding(.vertical, isPad ? 12 : 8)
+                                .background(Color.purple)
+                                .cornerRadius(12)
+                        }
+                    }
+                } else if isFullyRecorded {
+                    Button(action: onStart) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "eye.fill")
+                            Text("Review")
+                        }
+                        .font(isPad ? .title3.bold() : .headline.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, isPad ? 20 : 14)
+                        .padding(.vertical, isPad ? 12 : 8)
+                        .background(Color.green)
+                        .cornerRadius(12)
+                    }
+                } else if isPartiallyRecorded {
+                    Button(action: onStart) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "play.fill")
+                            Text("Resume")
+                        }
+                        .font(isPad ? .title3.bold() : .headline.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, isPad ? 20 : 14)
+                        .padding(.vertical, isPad ? 12 : 8)
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                    }
+                } else {
+                    Button(action: onStart) {
+                        Text("Start")
+                            .font(isPad ? .title3.bold() : .headline.bold())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, isPad ? 24 : 16)
+                            .padding(.vertical, isPad ? 12 : 8)
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                    }
+                }
             }
         }
         .padding(isPad ? 24 : 16)
@@ -637,54 +910,130 @@ struct CustomDeckEditorView: View {
     @ObservedObject var customStore: CustomDeckStore
     let isPad: Bool
     @Environment(\.dismiss) var dismiss
-    @State private var newPhraseText: String = ""
+    
+    @State private var newGroupName: String = ""
+    @State private var selectedIcon: String = "folder.fill"
+    
+    let availableIcons = [
+        "folder.fill",
+        "house.fill",
+        "fork.knife",
+        "heart.fill",
+        "bubble.left.and.bubble.right.fill",
+        "briefcase.fill",
+        "car.fill",
+        "cart.fill"
+    ]
     
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("Add Personalized Phrase").font(isPad ? .headline : .caption)) {
-                    HStack(spacing: 12) {
-                        TextField("e.g. 'Can you please call Sarah?'", text: $newPhraseText)
+                // Section 1: Create a New Group
+                Section(header: Text("Create New Group Deck").font(isPad ? .headline : .caption.bold())) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Group Name")
+                            .font(isPad ? .headline : .subheadline.bold())
+                            .foregroundColor(.secondary)
+                        
+                        TextField("e.g. 'Dining & Drinks' or 'Morning Routine'", text: $newGroupName)
                             .font(isPad ? .title3 : .body)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Text("Select Icon")
+                            .font(isPad ? .subheadline : .caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(availableIcons, id: \.self) { icon in
+                                    Button(action: { selectedIcon = icon }) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(selectedIcon == icon ? Color.blue : Color.gray.opacity(0.15))
+                                                .frame(width: isPad ? 44 : 36, height: isPad ? 44 : 36)
+                                            Image(systemName: icon)
+                                                .font(isPad ? .headline : .subheadline)
+                                                .foregroundColor(selectedIcon == icon ? .white : .primary)
+                                        }
+                                    }
+                                    .buttonStyle(.borderless)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
                         
                         Button(action: {
-                            guard !newPhraseText.isEmpty else { return }
-                            customStore.addCard(text: newPhraseText)
-                            newPhraseText = ""
+                            guard !newGroupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                            _ = customStore.createDeck(groupName: newGroupName, icon: selectedIcon)
+                            newGroupName = ""
                         }) {
-                            Text("Add")
+                            Label("Create Group", systemImage: "plus.circle.fill")
                                 .font(isPad ? .title3.bold() : .headline.bold())
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(newPhraseText.isEmpty ? Color.gray : Color.blue)
-                                .cornerRadius(8)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, isPad ? 14 : 10)
+                                .background(newGroupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
+                                .cornerRadius(10)
                         }
-                        .disabled(newPhraseText.isEmpty)
+                        .disabled(newGroupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 8)
                 }
                 
-                Section(header: Text("Custom Phrases (\(customStore.cards.count))").font(isPad ? .headline : .caption),
-                        footer: Text("Phrases will appear in the Custom Phrases deck in Voice Studio.").font(isPad ? .body : .caption)) {
-                    if customStore.cards.isEmpty {
-                        Text("No custom phrases added yet. Caregivers or family can enter frequently spoken requests here.")
-                            .foregroundColor(.secondary)
+                // Section 2: Custom Groups List
+                Section(
+                    header: Text("Your Custom Groups (\(customStore.decks.count))").font(isPad ? .headline : .caption.bold()),
+                    footer: Text("Add as few or as many phrases as you want to each group. Tap any group to view, add, or delete its phrases.").font(isPad ? .body : .caption)
+                ) {
+                    if customStore.decks.isEmpty {
+                        Text("No custom decks created yet. Add a group above to start organizing phrases.")
                             .font(isPad ? .body : .subheadline)
+                            .foregroundColor(.secondary)
                             .padding(.vertical, 8)
                     } else {
-                        ForEach(customStore.cards) { card in
-                            Text(card.text)
-                                .font(isPad ? .title3 : .body)
+                        ForEach(customStore.decks) { deck in
+                            NavigationLink(destination: DeckPhrasesDetailView(deckId: deck.id, customStore: customStore, isPad: isPad)) {
+                                HStack(spacing: 14) {
+                                    Image(systemName: deck.icon)
+                                        .font(isPad ? .title3 : .body)
+                                        .foregroundColor(.purple)
+                                        .frame(width: 30)
+                                    
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 6) {
+                                            Text(deck.title)
+                                                .font(isPad ? .title3.bold() : .headline)
+                                            if deck.isLocked {
+                                                HStack(spacing: 3) {
+                                                    Image(systemName: "lock.fill")
+                                                        .font(.system(size: isPad ? 10 : 8))
+                                                    Text("Locked")
+                                                        .font(.system(size: isPad ? 11 : 9, weight: .bold))
+                                                }
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.12))
+                                                .foregroundColor(.orange)
+                                                .cornerRadius(6)
+                                            }
+                                        }
+                                        Text("\(deck.cards.count) phrases")
+                                            .font(isPad ? .body : .caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                }
                                 .padding(.vertical, 4)
+                            }
                         }
                         .onDelete { indexSet in
-                            customStore.deleteCard(at: indexSet)
+                            customStore.deleteDeck(at: indexSet)
                         }
                     }
                 }
             }
-            .navigationTitle("Custom Phrases")
+            .navigationTitle("Custom Decks")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -692,6 +1041,133 @@ struct CustomDeckEditorView: View {
                     }
                     .font(isPad ? .title3.bold() : .headline.bold())
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Deck Phrases Detail View
+struct DeckPhrasesDetailView: View {
+    let deckId: String
+    @ObservedObject var customStore: CustomDeckStore
+    let isPad: Bool
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var newPhraseText: String = ""
+    
+    var currentDeck: PromptDeck? {
+        customStore.decks.first(where: { $0.id == deckId })
+    }
+    
+    var body: some View {
+        Group {
+            if let deck = currentDeck {
+                List {
+                    if deck.isLocked {
+                        Section {
+                            HStack(spacing: 12) {
+                                Image(systemName: "lock.circle.fill")
+                                    .font(isPad ? .title : .title2)
+                                    .foregroundColor(.orange)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Group Locked")
+                                        .font(isPad ? .headline.bold() : .subheadline.bold())
+                                        .foregroundColor(.primary)
+                                    Text("Voice training data for this group has already been sent. No more phrases can be added.")
+                                        .font(isPad ? .subheadline : .caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    } else {
+                        Section(header: Text("Add Phrase to \(deck.title)").font(isPad ? .headline : .caption.bold())) {
+                            HStack(spacing: 12) {
+                                TextField("Type phrase (e.g. 'Can I have some tea?')", text: $newPhraseText)
+                                    .font(isPad ? .title3 : .body)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                
+                                Button(action: {
+                                    guard !newPhraseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                                    customStore.addPhrase(toDeckId: deckId, text: newPhraseText)
+                                    newPhraseText = ""
+                                }) {
+                                    Text("Add")
+                                        .font(isPad ? .title3.bold() : .headline.bold())
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(newPhraseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
+                                        .cornerRadius(8)
+                                }
+                                .disabled(newPhraseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    }
+                    
+                    Section(
+                        header: Text("Phrases (\(deck.cards.count))").font(isPad ? .headline : .caption.bold()),
+                        footer: Text(deck.isLocked ? "Phrases are locked to preserve training data alignment." : "Swipe left to delete any phrase.").font(isPad ? .body : .caption)
+                    ) {
+                        if deck.cards.isEmpty {
+                            Text("No phrases in this group yet. Enter a phrase above to add.")
+                                .font(isPad ? .body : .subheadline)
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(Array(deck.cards.enumerated()), id: \.element.id) { index, card in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text("\(index + 1).")
+                                        .font(isPad ? .headline.bold() : .subheadline.bold())
+                                        .foregroundColor(deck.isLocked ? .orange : .purple)
+                                        .frame(width: 28, alignment: .leading)
+                                    Text(card.text)
+                                        .font(isPad ? .title3 : .body)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .onDelete(perform: deck.isLocked ? nil : { indexSet in
+                                customStore.deletePhrase(fromDeckId: deckId, at: indexSet)
+                            })
+                        }
+                    }
+                    
+                    Section {
+                        if deck.isLocked {
+                            Button(action: {
+                                customStore.unlockDeck(id: deckId)
+                            }) {
+                                Label("Unlock Group (Allows Editing)", systemImage: "lock.open")
+                                    .font(isPad ? .title3.bold() : .headline)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        
+                        Button(role: .destructive, action: {
+                            customStore.deleteDeck(id: deckId)
+                            dismiss()
+                        }) {
+                            Label("Delete Group", systemImage: "trash")
+                                .font(isPad ? .title3.bold() : .headline)
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+                .navigationTitle(deck.title)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                        .font(isPad ? .title3.bold() : .headline.bold())
+                    }
+                }
+            } else {
+                Text("Group not found.")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
             }
         }
     }

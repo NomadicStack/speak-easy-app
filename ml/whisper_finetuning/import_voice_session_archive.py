@@ -91,6 +91,11 @@ def main() -> None:
                 if not src_audio.exists():
                     # Check fallback directly under tmp
                     src_audio = tmp_path / raw_relpath
+                if not src_audio.exists():
+                    filename = Path(raw_relpath).name
+                    matches = list(tmp_path.rglob(filename))
+                    if matches:
+                        src_audio = matches[0]
 
                 if not src_audio.exists():
                     print(f"Warning: audio file not found: {raw_relpath}, skipping.")
@@ -126,6 +131,11 @@ def main() -> None:
                     "splits": split,
                     "scenario_group": scenario_group,
                 }
+                # Preserve all extra columns from incoming metadata (e.g. recorded_at, original_transcription)
+                for k, v in row.items():
+                    if k not in new_row and k != "filepath":
+                        new_row[k] = v.strip() if isinstance(v, str) else v
+
                 new_rows.append(new_row)
                 existing_relpaths.add(canonical_relpath)
                 imported_count += 1

@@ -5,6 +5,7 @@ struct ContentView: View {
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var transcriptionVM = TranscriptionViewModel()
     @StateObject private var aacVM = AACViewModel()
+    @ObservedObject private var trainingSessionManager = TrainingSessionManager.shared
     @State private var selectedTab = 0
     @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
@@ -109,6 +110,14 @@ struct ContentView: View {
                                 Image(systemName: "waveform.badge.mic")
                                     .font(.system(size: 34, weight: .bold))
                                     .frame(width: 60)
+                                    .overlay(alignment: .topTrailing) {
+                                        if !trainingSessionManager.pendingLiveCorrections.isEmpty {
+                                            Circle()
+                                                .fill(Color.orange)
+                                                .frame(width: 10, height: 10)
+                                                .offset(x: -8, y: -2)
+                                        }
+                                    }
                                 
                                 if isRailExpanded {
                                     Text("Voice Studio")
@@ -211,6 +220,14 @@ struct ContentView: View {
                                     VStack(spacing: 8) {
                                         Image(systemName: "waveform.badge.mic")
                                             .font(.system(size: isPad ? 38 : 24, weight: .bold))
+                                            .overlay(alignment: .topTrailing) {
+                                                if !trainingSessionManager.pendingLiveCorrections.isEmpty {
+                                                    Circle()
+                                                        .fill(Color.orange)
+                                                        .frame(width: 10, height: 10)
+                                                        .offset(x: 4, y: -2)
+                                                }
+                                            }
                                         Text("Voice Studio")
                                             .font(.system(size: isPad ? 22 : 16, weight: .bold))
                                     }
@@ -261,6 +278,7 @@ struct ContentView: View {
 struct TranscriptionView: View {
     @ObservedObject var audioRecorder: AudioRecorder
     @ObservedObject var transcriptionVM: TranscriptionViewModel
+    @ObservedObject var trainingSessionManager = TrainingSessionManager.shared
     var isPad: Bool
     var isLandscape: Bool = false
     
@@ -275,12 +293,26 @@ struct TranscriptionView: View {
         VStack(spacing: transcriptionVM.isEditing ? (isLandscape ? 5 : 15) : (isPad ? (isLandscape ? 20 : 50) : 30)) {
             // Header with Branding (Hide in Rail mode to avoid duplication)
             if (!isLandscape || !isPad) && !transcriptionVM.isEditing {
-                HStack {
+                HStack(spacing: 12) {
                     Text("SpeakEasy")
                         .font(isPad ? .largeTitle.bold() : .title2.bold())
                         .foregroundColor(.blue)
                     
                     Spacer()
+                    
+                    if !trainingSessionManager.pendingLiveCorrections.isEmpty {
+                        Button(action: { isShowingModelSelection = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("✓ \(trainingSessionManager.pendingLiveCorrections.count) ready to export")
+                                    .font(isPad ? .headline.bold() : .caption.bold())
+                            }
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Color.orange.opacity(0.15)))
+                        }
+                    }
                     
                     Button(action: { isShowingModelSelection = true }) {
                         Image(systemName: "gearshape.fill")

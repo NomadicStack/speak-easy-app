@@ -54,6 +54,7 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
     // MARK: - Audio Playback State
     @Published public var isPlaying: Bool = false
     @Published public var isSpeakingPrompt: Bool = false
+    @Published public var playingSampleId: UUID? = nil
     
     // MARK: - Live Corrections Queue
     @Published public var pendingLiveCorrections: [LiveCorrectionSample] = []
@@ -75,13 +76,36 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
     
     // MARK: - Session Lifecycle
     public func startSession(with deck: PromptDeck) {
-        self.activeDeck = deck
-        self.currentCardIndex = 0
-        self.recordedSamples = []
-        self.isSessionCompleted = false
-        self.currentRecordedAudioURL = nil
         stopPlayback()
         stopSpeaking()
+        stopRecording()
+        
+        self.activeDeck = deck
+        let existingSamples = loadSamples(for: deck.id)
+        self.recordedSamples = existingSamples
+        
+        // Check if all cards in the deck are already recorded
+        let allCardsRecorded = !deck.cards.isEmpty && deck.cards.allSatisfy { card in
+            existingSamples.contains(where: { $0.card.id == card.id || $0.card.text == card.text })
+        }
+        
+        if allCardsRecorded {
+            // All phrases already recorded -> directly show completed review screen
+            self.isSessionCompleted = true
+            self.currentCardIndex = max(0, deck.cards.count - 1)
+            self.currentRecordedAudioURL = nil
+        } else {
+            // Find the first unrecorded card in the deck
+            if let firstUnrecordedIndex = deck.cards.firstIndex(where: { card in
+                !existingSamples.contains(where: { $0.card.id == card.id || $0.card.text == card.text })
+            }) {
+                self.currentCardIndex = firstUnrecordedIndex
+            } else {
+                self.currentCardIndex = 0
+            }
+            self.isSessionCompleted = false
+            loadCurrentCardRecording()
+        }
     }
     
     public func exitSession() {
@@ -93,6 +117,42 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
         self.recordedSamples = []
         self.isSessionCompleted = false
         self.currentRecordedAudioURL = nil
+        self.currentRecordingDuration = 0.0
+    }
+    
+    public func loadCurrentCardRecording() {
+        guard let deck = activeDeck, let card = currentCard else {
+            self.currentRecordedAudioURL = nil
+            self.currentRecordingDuration = 0.0
+            return
+        }
+        if let sample = recordedSamples.first(where: { $0.card.id == card.id || $0.card.text == card.text }) {
+            let audioDir = getDeckAudioDirectory(deckId: deck.id)
+            let fileURL = audioDir.appendingPathComponent(sample.audioFileName)
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                self.currentRecordedAudioURL = fileURL
+                self.currentRecordingDuration = sample.duration
+                return
+            }
+        }
+        self.currentRecordedAudioURL = nil
+        self.currentRecordingDuration = 0.0
+    }
+    
+    public func previousCard() {
+        guard currentCardIndex > 0 else { return }
+        stopPlayback()
+        stopRecording()
+        currentCardIndex -= 1
+        loadCurrentCardRecording()
+    }
+    
+    public func nextCard() {
+        guard let deck = activeDeck, currentCardIndex + 1 < deck.cards.count else { return }
+        stopPlayback()
+        stopRecording()
+        currentCardIndex += 1
+        loadCurrentCardRecording()
     }
     
     public var currentCard: PromptCard? {
@@ -102,6 +162,11 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
     
     public var hasRecordedCurrentCard: Bool {
         return currentRecordedAudioURL != nil
+    }
+    
+    public var isCurrentCardRecorded: Bool {
+        guard let card = currentCard else { return false }
+        return recordedSamples.contains(where: { $0.card.id == card.id || $0.card.text == card.text })
     }
     
     public var sessionProgress: Double {
@@ -116,7 +181,7 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
         
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
             try session.setActive(true)
             
             let tempDir = FileManager.default.temporaryDirectory
@@ -135,6 +200,7 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
             audioRecorder = try AVAudioRecorder(url: fileURL, settings: settings)
             audioRecorder?.delegate = self
             audioRecorder?.isMeteringEnabled = true
+            audioRecorder?.prepareToRecord()
             audioRecorder?.record()
             
             isRecording = true
@@ -142,20 +208,20 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
             
             // Audio level metering for waveform UI
             meterTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-                guard let self = self, let recorder = self.audioRecorder, recorder.isRecording else { return }
-                recorder.updateMeters()
-                let peak = recorder.averagePower(forChannel: 0)
-                // Normalize dB (-60 to 0) to 0.0 ... 1.0
-                let normalized = max(0.0, min(1.0, (peak + 60.0) / 60.0))
-                DispatchQueue.main.async {
+                Task { @MainActor [weak self] in
+                    guard let self = self, let recorder = self.audioRecorder, recorder.isRecording else { return }
+                    recorder.updateMeters()
+                    let peak = recorder.averagePower(forChannel: 0)
+                    // Normalize dB (-60 to 0) to 0.0 ... 1.0
+                    let normalized = max(0.0, min(1.0, (peak + 60.0) / 60.0))
                     self.audioMeterLevel = normalized
                 }
             }
             
             // Duration timer
             durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                guard let self = self, self.isRecording else { return }
-                DispatchQueue.main.async {
+                Task { @MainActor [weak self] in
+                    guard let self = self, self.isRecording else { return }
                     self.currentRecordingDuration += 0.1
                 }
             }
@@ -180,22 +246,59 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
         }
     }
     
+    public nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        Task { @MainActor in
+            if flag && FileManager.default.fileExists(atPath: recorder.url.path) {
+                self.currentRecordedAudioURL = recorder.url
+            }
+        }
+    }
+    
     // MARK: - Audio Playback
     public func playCurrentRecording() {
-        guard let url = currentRecordedAudioURL else { return }
+        guard let url = currentRecordedAudioURL else {
+            print("[VoiceStudio] playCurrentRecording: currentRecordedAudioURL is nil")
+            return
+        }
         stopSpeaking()
+        stopPlayback()
         
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+            // Use .playAndRecord with .defaultToSpeaker so playback routes to loudspeaker
+            // without invalid option errors (.defaultToSpeaker is only valid with .playAndRecord)
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
             try session.setActive(true)
+            try? session.overrideOutputAudioPort(.speaker)
             
-            audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.delegate = self
-            audioPlayer?.play()
-            isPlaying = true
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.delegate = self
+            player.volume = 1.0
+            player.prepareToPlay()
+            if player.play() {
+                self.audioPlayer = player
+                self.isPlaying = true
+            } else {
+                print("[VoiceStudio] audioPlayer.play() returned false for URL: \(url)")
+            }
         } catch {
-            print("Failed to play audio recording: \(error)")
+            print("[VoiceStudio] Failed to play with .playAndRecord: \(error), falling back to .playback")
+            do {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .spokenAudio, options: [])
+                try session.setActive(true)
+                
+                let player = try AVAudioPlayer(contentsOf: url)
+                player.delegate = self
+                player.volume = 1.0
+                player.prepareToPlay()
+                if player.play() {
+                    self.audioPlayer = player
+                    self.isPlaying = true
+                }
+            } catch {
+                print("[VoiceStudio] Fallback playback failed: \(error)")
+            }
         }
     }
     
@@ -221,7 +324,7 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
         }
         
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [])
         try? session.setActive(true)
         
         let utterance = AVSpeechUtterance(string: card.text)
@@ -249,63 +352,177 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
     public func redoCurrentCard() {
         stopPlayback()
         stopRecording()
+        guard let deck = activeDeck, let card = currentCard else { return }
+        
+        if let index = recordedSamples.firstIndex(where: { $0.card.id == card.id || $0.card.text == card.text }) {
+            let sample = recordedSamples.remove(at: index)
+            let audioDir = getDeckAudioDirectory(deckId: deck.id)
+            let fileURL = audioDir.appendingPathComponent(sample.audioFileName)
+            try? FileManager.default.removeItem(at: fileURL)
+            saveSamples(for: deck.id)
+        }
+        
         if let tempURL = currentRecordedAudioURL {
             try? FileManager.default.removeItem(at: tempURL)
         }
         currentRecordedAudioURL = nil
+        currentRecordingDuration = 0.0
     }
     
     public func keepAndNext() {
-        guard let card = currentCard, let tempAudioURL = currentRecordedAudioURL else { return }
+        guard let card = currentCard, let tempAudioURL = currentRecordedAudioURL, let deck = activeDeck else { return }
         stopPlayback()
         
-        // Save permanently for this session
-        let sessionDir = getOrCreateSessionDirectory()
-        let audioFolder = sessionDir.appendingPathComponent("audio")
-        try? FileManager.default.createDirectory(at: audioFolder, withIntermediateDirectories: true)
-        
-        let sampleFileName = "sample_\(String(format: "%02d", currentCardIndex + 1)).wav"
+        let audioFolder = getDeckAudioDirectory(deckId: deck.id)
+        let sampleFileName = "sample_\(String(format: "%02d", currentCardIndex + 1))_\(card.id.uuidString.prefix(6)).wav"
         let destURL = audioFolder.appendingPathComponent(sampleFileName)
         
-        try? FileManager.default.removeItem(at: destURL)
-        do {
-            try FileManager.default.copyItem(at: tempAudioURL, to: destURL)
-            let sample = RecordedSample(
-                card: card,
-                audioFileName: sampleFileName,
-                duration: currentRecordingDuration,
-                timestamp: Date()
-            )
-            recordedSamples.append(sample)
-        } catch {
-            print("Error copying sample audio: \(error)")
+        // Copy audio from temp to deck's permanent audio folder if it was freshly recorded
+        if tempAudioURL.path != destURL.path {
+            try? FileManager.default.removeItem(at: destURL)
+            do {
+                try FileManager.default.copyItem(at: tempAudioURL, to: destURL)
+                try? FileManager.default.removeItem(at: tempAudioURL)
+            } catch {
+                print("[VoiceStudio] Error saving sample audio: \(error)")
+            }
         }
         
-        // Clean up temp recording
-        try? FileManager.default.removeItem(at: tempAudioURL)
-        currentRecordedAudioURL = nil
+        let newSample = RecordedSample(
+            id: UUID(),
+            card: card,
+            audioFileName: sampleFileName,
+            duration: currentRecordingDuration,
+            timestamp: Date()
+        )
         
-        // Move to next card or complete
-        guard let deck = activeDeck else { return }
-        if currentCardIndex + 1 < deck.cards.count {
-            currentCardIndex += 1
+        if let existingIndex = recordedSamples.firstIndex(where: { $0.card.id == card.id || $0.card.text == card.text }) {
+            recordedSamples[existingIndex] = newSample
         } else {
+            recordedSamples.append(newSample)
+        }
+        saveSamples(for: deck.id)
+        
+        // Check if all cards in deck are now recorded
+        let allCardsRecorded = !deck.cards.isEmpty && deck.cards.allSatisfy { c in
+            recordedSamples.contains(where: { $0.card.id == c.id || $0.card.text == c.text })
+        }
+        
+        if allCardsRecorded {
             isSessionCompleted = true
+        } else if currentCardIndex + 1 < deck.cards.count {
+            currentCardIndex += 1
+            loadCurrentCardRecording()
+        } else {
+            // Reached end of deck list, jump to any remaining unrecorded card
+            if let firstUnrecorded = deck.cards.firstIndex(where: { c in
+                !recordedSamples.contains(where: { $0.card.id == c.id || $0.card.text == c.text })
+            }) {
+                currentCardIndex = firstUnrecorded
+                loadCurrentCardRecording()
+            } else {
+                isSessionCompleted = true
+            }
         }
     }
     
-    // MARK: - Directory Helpers
-    private func getVoiceStudioDirectory() -> URL {
+    // MARK: - Directory & Persistence Helpers
+    public func getVoiceStudioDirectory() -> URL {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let dir = docs.appendingPathComponent("VoiceStudio", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
     
-    private func getOrCreateSessionDirectory() -> URL {
-        let sessionDir = getVoiceStudioDirectory().appendingPathComponent("ActiveSession", isDirectory: true)
-        try? FileManager.default.createDirectory(at: sessionDir, withIntermediateDirectories: true)
-        return sessionDir
+    public func getDeckDirectory(deckId: String) -> URL {
+        let dir = getVoiceStudioDirectory().appendingPathComponent("Decks", isDirectory: true).appendingPathComponent(deckId, isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+    
+    public func getDeckAudioDirectory(deckId: String) -> URL {
+        let dir = getDeckDirectory(deckId: deckId).appendingPathComponent("audio", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+    
+    public func saveSamples(for deckId: String) {
+        let samplesFile = getDeckDirectory(deckId: deckId).appendingPathComponent("samples.json")
+        if let data = try? JSONEncoder().encode(recordedSamples) {
+            try? data.write(to: samplesFile, options: .atomic)
+        }
+        objectWillChange.send()
+    }
+    
+    public func loadSamples(for deckId: String) -> [RecordedSample] {
+        let samplesFile = getDeckDirectory(deckId: deckId).appendingPathComponent("samples.json")
+        guard let data = try? Data(contentsOf: samplesFile),
+              let decoded = try? JSONDecoder().decode([RecordedSample].self, from: data) else {
+            return []
+        }
+        return decoded
+    }
+    
+    public func recordedSampleCount(for deckId: String) -> Int {
+        return loadSamples(for: deckId).count
+    }
+    
+    public func isDeckFullyRecorded(deck: PromptDeck) -> Bool {
+        guard !deck.cards.isEmpty else { return false }
+        let saved = loadSamples(for: deck.id)
+        return deck.cards.allSatisfy { card in
+            saved.contains(where: { $0.card.id == card.id || $0.card.text == card.text })
+        }
+    }
+    
+    public func playSample(_ sample: RecordedSample) {
+        if isPlaying && playingSampleId == sample.id {
+            stopPlayback()
+            return
+        }
+        
+        guard let deck = activeDeck else { return }
+        let audioDir = getDeckAudioDirectory(deckId: deck.id)
+        let fileURL = audioDir.appendingPathComponent(sample.audioFileName)
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        
+        stopSpeaking()
+        stopPlayback()
+        
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
+            try session.setActive(true)
+            try? session.overrideOutputAudioPort(.speaker)
+            
+            let player = try AVAudioPlayer(contentsOf: fileURL)
+            player.delegate = self
+            player.volume = 1.0
+            player.prepareToPlay()
+            if player.play() {
+                self.audioPlayer = player
+                self.isPlaying = true
+                self.playingSampleId = sample.id
+            }
+        } catch {
+            print("[VoiceStudio] playSample failed: \(error)")
+        }
+    }
+    
+    public func resetDeckRecordings(deckId: String) {
+        stopPlayback()
+        stopRecording()
+        stopSpeaking()
+        let deckDir = getDeckDirectory(deckId: deckId)
+        try? FileManager.default.removeItem(at: deckDir)
+        if activeDeck?.id == deckId {
+            recordedSamples.removeAll()
+            currentCardIndex = 0
+            isSessionCompleted = false
+            currentRecordedAudioURL = nil
+            currentRecordingDuration = 0.0
+        }
+        objectWillChange.send()
     }
     
     // MARK: - ZIP Export Packaging (Whisper Fine-Tuning Format)
@@ -325,14 +542,14 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
         try? fileManager.removeItem(at: exportFolderURL)
         try? fileManager.createDirectory(at: exportAudioFolderURL, withIntermediateDirectories: true)
         
-        let sessionDir = getOrCreateSessionDirectory().appendingPathComponent("audio")
+        let deckAudioDir = getDeckAudioDirectory(deckId: deck.id)
         
         // 1. Build metadata.csv content matching Whisper fine-tuning schema
         var csvLines = ["filepath,text,norm_text,splits,scenario_group,recorded_at"]
         let isoFormatter = ISO8601DateFormatter()
         
         for sample in recordedSamples {
-            let srcAudioURL = sessionDir.appendingPathComponent(sample.audioFileName)
+            let srcAudioURL = deckAudioDir.appendingPathComponent(sample.audioFileName)
             let destAudioURL = exportAudioFolderURL.appendingPathComponent(sample.audioFileName)
             
             if fileManager.fileExists(atPath: srcAudioURL.path) {
@@ -358,7 +575,6 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
         
         do {
             try fileManager.zipItem(at: exportFolderURL, to: zipURL, shouldKeepParent: false)
-            // Cleanup uncompressed folder
             try? fileManager.removeItem(at: exportFolderURL)
             return zipURL
         } catch {
@@ -468,18 +684,20 @@ public final class TrainingSessionManager: NSObject, ObservableObject, AVAudioRe
     
     // MARK: - Session Cleanup
     public func clearActiveSessionFiles() {
-        let sessionDir = getOrCreateSessionDirectory()
-        try? FileManager.default.removeItem(at: sessionDir)
-        recordedSamples.removeAll()
-        isSessionCompleted = false
-        currentCardIndex = 0
-        currentRecordedAudioURL = nil
+        if let deckId = activeDeck?.id {
+            resetDeckRecordings(deckId: deckId)
+        } else {
+            recordedSamples.removeAll()
+            isSessionCompleted = false
+            currentCardIndex = 0
+            currentRecordedAudioURL = nil
+        }
     }
     
     // MARK: - Text Normalization Helper
     private func normalizeText(_ input: String) -> String {
         var str = input.lowercased()
-        let allowed = CharacterSet.alphanumerics.union(.whitespaces)
+        let allowed = CharacterSet.alphanumerics.union(.whitespaces).union(CharacterSet(charactersIn: "'"))
         str = str.unicodeScalars.filter { allowed.contains($0) }.map(String.init).joined()
         return str.split(separator: " ").joined(separator: " ")
     }

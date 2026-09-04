@@ -177,12 +177,11 @@ When you receive the email, you simply extract this folder into `data/personal/`
 - Integrates with `ZIPFoundation` (already included in the project for model unzipping) to compress the session into a single `.zip` file.
 - Tracks pending live corrections and completed guided decks.
 
-#### [NEW] [PromptDecks.swift](file:///c:/Users/Dalai/dev/dysarthria-app/DysarthriaApp/PromptDecks.swift)
-- Curated prompt lists grouped by category:
-  - **Daily Essentials** (needs, pain, environment control)
-  - **Social & Greetings** (conversational phrases)
-  - **Phonetic Variety** (short sentences covering key consonants/vowels)
-  - **Custom Deck** (allows caregivers to add user-specific names or phrases)
+#### [NEW] [PromptDecks.swift](file:///Users/dalaimingat/Desktop/mydev/DysarthriaApp/DysarthriaApp/PromptDecks.swift)
+- Curated single example deck and flexible user group stores:
+  - **Daily Essentials (Example Deck)**: Single 10-phrase starter example deck covering urgent assistance needs.
+  - **Custom User Groups**: Allows users and caregivers to create their own decks with custom group names, custom icons, and arbitrary numbers of phrases (users decide how few or many phrases in each group).
+  - Persisted in local `UserDefaults` with automatic migration.
 
 #### [NEW] [VoiceStudioView.swift](file:///c:/Users/Dalai/dev/dysarthria-app/DysarthriaApp/VoiceStudioView.swift)
 - Full-screen or modal accessible recording studio with prompt carousel, TTS preview, 120pt record button, and audio playback.

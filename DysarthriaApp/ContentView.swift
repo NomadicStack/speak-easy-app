@@ -9,6 +9,7 @@ struct ContentView: View {
     @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
     @AppStorage("user_email") var userEmail: String = ""
     @State private var isRailExpanded = false
 
@@ -102,6 +103,27 @@ struct ContentView: View {
                             .cornerRadius(16)
                         }
                         
+                        // Voice Studio Tab (Personalized Model Training)
+                        Button(action: { selectedTab = 2 }) {
+                            HStack(spacing: 15) {
+                                Image(systemName: "waveform.badge.mic")
+                                    .font(.system(size: 34, weight: .bold))
+                                    .frame(width: 60)
+                                
+                                if isRailExpanded {
+                                    Text("Voice Studio")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .fixedSize()
+                                }
+                            }
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, isRailExpanded ? 20 : 0)
+                            .frame(width: isRailExpanded ? 200 : 80, alignment: .leading)
+                            .background(selectedTab == 2 ? Color.teal.opacity(0.1) : Color.clear)
+                            .foregroundColor(selectedTab == 2 ? .teal : .secondary)
+                            .cornerRadius(16)
+                        }
+                        
                         Spacer()
                     }
                     .frame(width: isRailExpanded ? 220 : 100)
@@ -114,7 +136,7 @@ struct ContentView: View {
                     Group {
                         if selectedTab == 0 {
                             TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                        } else {
+                        } else if selectedTab == 1 {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
                                     OnboardingView()
@@ -122,6 +144,8 @@ struct ContentView: View {
                                     AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder, isLandscape: isLandscape)
                                 }
                             }
+                        } else {
+                            VoiceStudioView()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -134,7 +158,7 @@ struct ContentView: View {
                     Group {
                         if selectedTab == 0 {
                             TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                        } else {
+                        } else if selectedTab == 1 {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
                                     OnboardingView()
@@ -142,6 +166,8 @@ struct ContentView: View {
                                     AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder, isLandscape: isLandscape)
                                 }
                             }
+                        } else {
+                            VoiceStudioView()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -154,30 +180,44 @@ struct ContentView: View {
                             HStack(spacing: 0) {
                                 // Transcribe Tab
                                 Button(action: { selectedTab = 0 }) {
-                                    VStack(spacing: 10) {
+                                    VStack(spacing: 8) {
                                         Image(systemName: "waveform")
-                                            .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                            .font(.system(size: isPad ? 38 : 24, weight: .bold))
                                         Text("Transcribe")
-                                            .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                            .font(.system(size: isPad ? 22 : 16, weight: .bold))
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, isPad ? 30 : 20)
+                                    .padding(.vertical, isPad ? 25 : 15)
                                     .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
                                     .foregroundColor(selectedTab == 0 ? .blue : .secondary)
                                 }
                                 
                                 // Smart Speak Tab
                                 Button(action: { selectedTab = 1 }) {
-                                    VStack(spacing: 10) {
+                                    VStack(spacing: 8) {
                                         Image(systemName: "sparkles")
-                                            .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                            .font(.system(size: isPad ? 38 : 24, weight: .bold))
                                         Text("Smart Speak")
-                                            .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                            .font(.system(size: isPad ? 22 : 16, weight: .bold))
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, isPad ? 30 : 20)
+                                    .padding(.vertical, isPad ? 25 : 15)
                                     .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
                                     .foregroundColor(selectedTab == 1 ? .purple : .secondary)
+                                }
+                                
+                                // Voice Studio Tab
+                                Button(action: { selectedTab = 2 }) {
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "waveform.badge.mic")
+                                            .font(.system(size: isPad ? 38 : 24, weight: .bold))
+                                        Text("Voice Studio")
+                                            .font(.system(size: isPad ? 22 : 16, weight: .bold))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, isPad ? 25 : 15)
+                                    .background(selectedTab == 2 ? Color.teal.opacity(0.1) : Color.clear)
+                                    .foregroundColor(selectedTab == 2 ? .teal : .secondary)
                                 }
                             }
                             .background(.ultraThinMaterial)
@@ -228,6 +268,7 @@ struct TranscriptionView: View {
     @State private var isShowingModelSelection = false
     
     @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
     @AppStorage("user_email") var userEmail: String = ""
 
     var body: some View {
@@ -361,6 +402,7 @@ struct TranscriptionView: View {
                             .sheet(isPresented: $isShowingMailView) {
                                 MailView(
                                     recipient: feedbackRecipient,
+                                    ccRecipients: caregiverCCEmail.isEmpty ? nil : [caregiverCCEmail],
                                     subject: "SpeakEasy Feedback Report",
                                     body: transcriptionVM.prepareFeedbackReport(userEmail: userEmail),
                                     attachments: transcriptionVM.getFeedbackAudioURLs(),

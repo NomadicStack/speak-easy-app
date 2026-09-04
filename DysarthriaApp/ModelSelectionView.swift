@@ -8,6 +8,8 @@ struct ModelSelectionView: View {
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
     @AppStorage("user_name") var userName: String = "User"
+    @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
     
     @ObservedObject var contactManager = ContactManager.shared
     @State private var newContactName: String = ""
@@ -166,7 +168,40 @@ struct ModelSelectionView: View {
                 .accentColor(.purple)
             }
             
-            // 4. Testing & Debug (Collapsible)
+            // 4. Voice Training & Data Export
+            Section(header: Text("Voice Training & Data Export").font(isPad ? .title3.bold() : .caption.bold()),
+                    footer: Text("Audio recordings are stored strictly on-device. When exported from Voice Studio, data is packaged and sent directly to these email addresses.").font(isPad ? .body : .caption)) {
+                DisclosureGroup("Email Configuration") {
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Developer / Trainer Recipient Email")
+                                .font(isPad ? .headline : .caption.bold())
+                                .foregroundColor(.secondary)
+                            TextField("developer@example.com", text: $feedbackRecipient)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
+                                .autocapitalization(.none)
+                                .keyboardType(.emailAddress)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Caregiver Email (CC on Export)")
+                                .font(isPad ? .headline : .caption.bold())
+                                .foregroundColor(.secondary)
+                            TextField("caregiver@example.com (optional)", text: $caregiverCCEmail)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
+                                .autocapitalization(.none)
+                                .keyboardType(.emailAddress)
+                        }
+                    }
+                    .padding(.vertical, 10)
+                }
+                .font(isPad ? .title3.bold() : .headline)
+                .accentColor(.blue)
+            }
+            
+            // 5. Testing & Debug (Collapsible)
             Section(header: Text("Advanced").font(isPad ? .title3.bold() : .caption.bold())) {
                 DisclosureGroup("Developer Settings") {
                     VStack(alignment: .leading, spacing: 25) {

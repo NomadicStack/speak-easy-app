@@ -158,6 +158,13 @@ class TranscriptionViewModel: ObservableObject {
             
             saveToLogs(correction)
             
+            // Also queue into TrainingSessionManager for unified Voice Studio export
+            TrainingSessionManager.shared.addLiveCorrection(
+                audioURL: audioURL,
+                originalText: originalTranscription,
+                correctedText: transcribedText
+            )
+            
             totalCorrections += 1
             UserDefaults.standard.set(totalCorrections, forKey: "total_corrections")
             isEditing = false

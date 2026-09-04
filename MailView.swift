@@ -4,6 +4,7 @@ import MessageUI
 struct MailView: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentation
     let recipient: String
+    var ccRecipients: [String]? = nil
     let subject: String
     let body: String
     let attachments: [URL]
@@ -42,6 +43,9 @@ struct MailView: UIViewControllerRepresentable {
         let vc = MFMailComposeViewController()
         vc.mailComposeDelegate = context.coordinator
         vc.setToRecipients([recipient])
+        if let cc = ccRecipients, !cc.isEmpty {
+            vc.setCcRecipients(cc)
+        }
         vc.setSubject(subject)
         vc.setMessageBody(body, isHTML: false)
 
@@ -50,10 +54,19 @@ struct MailView: UIViewControllerRepresentable {
         }
 
         // Add attachments
-
         for url in attachments {
             if let data = try? Data(contentsOf: url) {
-                vc.addAttachmentData(data, mimeType: "audio/wav", fileName: url.lastPathComponent)
+                let ext = url.pathExtension.lowercased()
+                let mimeType: String
+                switch ext {
+                case "zip":
+                    mimeType = "application/zip"
+                case "csv":
+                    mimeType = "text/csv"
+                default:
+                    mimeType = "audio/wav"
+                }
+                vc.addAttachmentData(data, mimeType: mimeType, fileName: url.lastPathComponent)
             }
         }
         

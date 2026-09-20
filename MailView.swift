@@ -4,6 +4,7 @@ import MessageUI
 struct MailView: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentation
     let recipient: String
+    var ccRecipients: [String]? = nil
     let subject: String
     let body: String
     let attachments: [URL]
@@ -41,19 +42,37 @@ struct MailView: UIViewControllerRepresentable {
     func makeUIViewController(context: UIViewControllerRepresentableContext<MailView>) -> MFMailComposeViewController {
         let vc = MFMailComposeViewController()
         vc.mailComposeDelegate = context.coordinator
-        vc.setToRecipients([recipient])
+        let trimmedRecipient = recipient.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedRecipient.isEmpty {
+            vc.setToRecipients([trimmedRecipient])
+        }
+        if let cc = ccRecipients {
+            let validCC = cc.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            if !validCC.isEmpty {
+                vc.setCcRecipients(validCC)
+            }
+        }
         vc.setSubject(subject)
         vc.setMessageBody(body, isHTML: false)
 
-        if let sender = preferredSenderEmail, !sender.isEmpty {
+        if let sender = preferredSenderEmail, !sender.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             vc.setPreferredSendingEmailAddress(sender)
         }
 
         // Add attachments
-
         for url in attachments {
             if let data = try? Data(contentsOf: url) {
-                vc.addAttachmentData(data, mimeType: "audio/wav", fileName: url.lastPathComponent)
+                let ext = url.pathExtension.lowercased()
+                let mimeType: String
+                switch ext {
+                case "zip":
+                    mimeType = "application/zip"
+                case "csv":
+                    mimeType = "text/csv"
+                default:
+                    mimeType = "audio/wav"
+                }
+                vc.addAttachmentData(data, mimeType: mimeType, fileName: url.lastPathComponent)
             }
         }
         

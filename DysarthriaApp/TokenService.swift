@@ -160,13 +160,19 @@ public final class TokenService: NSObject, ObservableObject {
     public func deleteBaseModelCache() {
         let fileManager = FileManager.default
         
-        // 1. App Support / huggingface
+        // 1. Documents / huggingface
+        if let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let hfDocDir = documents.appendingPathComponent("huggingface")
+            try? fileManager.removeItem(at: hfDocDir)
+        }
+        
+        // 2. App Support / huggingface
         if let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
             let hfDir = appSupport.appendingPathComponent("huggingface")
             try? fileManager.removeItem(at: hfDir)
         }
         
-        // 2. Caches / huggingface & models
+        // 3. Caches / huggingface & models
         if let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
             let hfCacheDir = caches.appendingPathComponent("huggingface")
             try? fileManager.removeItem(at: hfCacheDir)

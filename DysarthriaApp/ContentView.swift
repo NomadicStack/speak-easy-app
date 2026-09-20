@@ -5,10 +5,12 @@ struct ContentView: View {
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var transcriptionVM = TranscriptionViewModel()
     @StateObject private var aacVM = AACViewModel()
+    @ObservedObject private var trainingSessionManager = TrainingSessionManager.shared
     @State private var selectedTab = 0
     @AppStorage("has_completed_onboarding") var hasCompletedOnboarding: Bool = false
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
     @AppStorage("user_email") var userEmail: String = ""
     @State private var isRailExpanded = false
 
@@ -36,9 +38,18 @@ struct ContentView: View {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
     }
     
+    private var isLandscape: Bool {
+        if let windowScene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first(where: { $0.activationState == .foregroundActive }) {
+            return windowScene.interfaceOrientation.isLandscape
+        }
+        if let windowScene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first {
+            return windowScene.interfaceOrientation.isLandscape
+        }
+        return UIScreen.main.bounds.width > UIScreen.main.bounds.height
+    }
+    
     var body: some View {
         GeometryReader { geometry in
-            let isLandscape = geometry.size.width > geometry.size.height
             let useRail = isPad && isLandscape
             
             if useRail {
@@ -102,6 +113,35 @@ struct ContentView: View {
                             .cornerRadius(16)
                         }
                         
+                        // Voice Studio Tab (Personalized Model Training)
+                        Button(action: { selectedTab = 2 }) {
+                            HStack(spacing: 15) {
+                                Image(systemName: "waveform.badge.mic")
+                                    .font(.system(size: 34, weight: .bold))
+                                    .frame(width: 60)
+                                    .overlay(alignment: .topTrailing) {
+                                        if !trainingSessionManager.pendingLiveCorrections.isEmpty {
+                                            Circle()
+                                                .fill(Color.orange)
+                                                .frame(width: 10, height: 10)
+                                                .offset(x: -8, y: -2)
+                                        }
+                                    }
+                                
+                                if isRailExpanded {
+                                    Text("Voice Studio")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .fixedSize()
+                                }
+                            }
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, isRailExpanded ? 20 : 0)
+                            .frame(width: isRailExpanded ? 200 : 80, alignment: .leading)
+                            .background(selectedTab == 2 ? Color.teal.opacity(0.1) : Color.clear)
+                            .foregroundColor(selectedTab == 2 ? .teal : .secondary)
+                            .cornerRadius(16)
+                        }
+                        
                         Spacer()
                     }
                     .frame(width: isRailExpanded ? 220 : 100)
@@ -114,7 +154,7 @@ struct ContentView: View {
                     Group {
                         if selectedTab == 0 {
                             TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                        } else {
+                        } else if selectedTab == 1 {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
                                     OnboardingView()
@@ -122,6 +162,8 @@ struct ContentView: View {
                                     AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder, isLandscape: isLandscape)
                                 }
                             }
+                        } else {
+                            VoiceStudioView()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -134,7 +176,7 @@ struct ContentView: View {
                     Group {
                         if selectedTab == 0 {
                             TranscriptionView(audioRecorder: audioRecorder, transcriptionVM: transcriptionVM, isPad: isPad, isLandscape: isLandscape)
-                        } else {
+                        } else if selectedTab == 1 {
                             Group {
                                 if !hasCompletedOnboarding && !useSimulation {
                                     OnboardingView()
@@ -142,6 +184,8 @@ struct ContentView: View {
                                     AACExpanderView(viewModel: aacVM, transcriptionVM: transcriptionVM, audioRecorder: audioRecorder, isLandscape: isLandscape)
                                 }
                             }
+                        } else {
+                            VoiceStudioView()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -154,30 +198,52 @@ struct ContentView: View {
                             HStack(spacing: 0) {
                                 // Transcribe Tab
                                 Button(action: { selectedTab = 0 }) {
-                                    VStack(spacing: 10) {
+                                    VStack(spacing: 8) {
                                         Image(systemName: "waveform")
-                                            .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                            .font(.system(size: isPad ? 38 : 24, weight: .bold))
                                         Text("Transcribe")
-                                            .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                            .font(.system(size: isPad ? 22 : 16, weight: .bold))
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, isPad ? 30 : 20)
+                                    .padding(.vertical, isPad ? 25 : 15)
                                     .background(selectedTab == 0 ? Color.blue.opacity(0.1) : Color.clear)
                                     .foregroundColor(selectedTab == 0 ? .blue : .secondary)
                                 }
                                 
                                 // Smart Speak Tab
                                 Button(action: { selectedTab = 1 }) {
-                                    VStack(spacing: 10) {
+                                    VStack(spacing: 8) {
                                         Image(systemName: "sparkles")
-                                            .font(.system(size: isPad ? 44 : 28, weight: .bold))
+                                            .font(.system(size: isPad ? 38 : 24, weight: .bold))
                                         Text("Smart Speak")
-                                            .font(.system(size: isPad ? 28 : 20, weight: .bold))
+                                            .font(.system(size: isPad ? 22 : 16, weight: .bold))
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, isPad ? 30 : 20)
+                                    .padding(.vertical, isPad ? 25 : 15)
                                     .background(selectedTab == 1 ? Color.purple.opacity(0.1) : Color.clear)
                                     .foregroundColor(selectedTab == 1 ? .purple : .secondary)
+                                }
+                                
+                                // Voice Studio Tab
+                                Button(action: { selectedTab = 2 }) {
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "waveform.badge.mic")
+                                            .font(.system(size: isPad ? 38 : 24, weight: .bold))
+                                            .overlay(alignment: .topTrailing) {
+                                                if !trainingSessionManager.pendingLiveCorrections.isEmpty {
+                                                    Circle()
+                                                        .fill(Color.orange)
+                                                        .frame(width: 10, height: 10)
+                                                        .offset(x: 4, y: -2)
+                                                }
+                                            }
+                                        Text("Voice Studio")
+                                            .font(.system(size: isPad ? 22 : 16, weight: .bold))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, isPad ? 25 : 15)
+                                    .background(selectedTab == 2 ? Color.teal.opacity(0.1) : Color.clear)
+                                    .foregroundColor(selectedTab == 2 ? .teal : .secondary)
                                 }
                             }
                             .background(.ultraThinMaterial)
@@ -187,6 +253,7 @@ struct ContentView: View {
                 .ignoresSafeArea(.container, edges: .bottom)
             }
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
                 // If transcription just finished and we're on the expander tab, trigger expansion
                 if !isTranscribing && selectedTab == 1 {
@@ -221,25 +288,42 @@ struct ContentView: View {
 struct TranscriptionView: View {
     @ObservedObject var audioRecorder: AudioRecorder
     @ObservedObject var transcriptionVM: TranscriptionViewModel
+    @ObservedObject var trainingSessionManager = TrainingSessionManager.shared
     var isPad: Bool
     var isLandscape: Bool = false
     
     @State private var isShowingMailView = false
     @State private var isShowingModelSelection = false
+    @State private var isShowingDeleteBaseModelConfirmation = false
     
     @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
     @AppStorage("user_email") var userEmail: String = ""
 
     var body: some View {
         VStack(spacing: transcriptionVM.isEditing ? (isLandscape ? 5 : 15) : (isPad ? (isLandscape ? 20 : 50) : 30)) {
             // Header with Branding (Hide in Rail mode to avoid duplication)
             if (!isLandscape || !isPad) && !transcriptionVM.isEditing {
-                HStack {
+                HStack(spacing: 12) {
                     Text("SpeakEasy")
                         .font(isPad ? .largeTitle.bold() : .title2.bold())
                         .foregroundColor(.blue)
                     
                     Spacer()
+                    
+                    if !trainingSessionManager.pendingLiveCorrections.isEmpty {
+                        Button(action: { isShowingModelSelection = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("✓ \(trainingSessionManager.pendingLiveCorrections.count) ready to export")
+                                    .font(isPad ? .headline.bold() : .caption.bold())
+                            }
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Color.orange.opacity(0.15)))
+                        }
+                    }
                     
                     Button(action: { isShowingModelSelection = true }) {
                         Image(systemName: "gearshape.fill")
@@ -252,17 +336,55 @@ struct TranscriptionView: View {
             }
             
             if !transcriptionVM.isModelLoaded {
-                VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(isPad ? 2.0 : 1.2)
-                    Text(transcriptionVM.modelLoadingMessage)
-                        .font(isPad ? .title : .headline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+                Spacer()
+                
+                if transcriptionVM.isDownloadingModel {
+                    VStack(spacing: 24) {
+                        ProgressView()
+                            .scaleEffect(isPad ? 2.0 : 1.4)
+                        Text(transcriptionVM.modelLoadingMessage)
+                            .font(isPad ? .title2 : .headline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .padding()
+                } else {
+                    VStack(spacing: 20) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: isPad ? 80 : 56))
+                            .foregroundColor(.blue)
+                        
+                        Text("Whisper Base Model Required")
+                            .font(isPad ? .largeTitle.bold() : .title2.bold())
+                        
+                        Text("Speech transcription requires downloading the Whisper base model (~460 MB).\nVoice Studio data collection works without it.")
+                            .font(isPad ? .title3 : .body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, isPad ? 40 : 20)
+                        
+                        Button(action: {
+                            transcriptionVM.downloadAndLoadBaseModel()
+                        }) {
+                            Label("Download Base Model (~460 MB)", systemImage: "icloud.and.arrow.down.fill")
+                                .font(isPad ? .title2.bold() : .headline.bold())
+                                .foregroundColor(.white)
+                                .padding(.horizontal, isPad ? 32 : 24)
+                                .padding(.vertical, isPad ? 18 : 14)
+                                .background(Color.blue)
+                                .cornerRadius(16)
+                                .shadow(radius: 5)
+                        }
+                        .padding(.top, 10)
+                    }
+                    .padding()
                 }
-                .padding()
-            } else if !transcriptionVM.isEditing {
-                DisclosureGroup("Advanced & Stats") {
+                
+                Spacer()
+            } else {
+                if !transcriptionVM.isEditing {
+                    DisclosureGroup("Advanced & Stats") {
                     VStack(alignment: .leading, spacing: 20) {
                         // Stats Section
                         VStack(alignment: .leading, spacing: 8) {
@@ -322,6 +444,20 @@ struct TranscriptionView: View {
                                 .foregroundColor(.red)
                                 .cornerRadius(12)
                         }
+                        
+                        if transcriptionVM.isBaseModelAvailable && !transcriptionVM.isCustomModel {
+                            Button(role: .destructive, action: {
+                                isShowingDeleteBaseModelConfirmation = true
+                            }) {
+                                Label("Remove Base Model (~460 MB)", systemImage: "trash")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(15)
+                                    .background(Color.red.opacity(0.1))
+                                    .foregroundColor(.red)
+                                    .cornerRadius(12)
+                            }
+                        }
 
                         // Report Section
                         if transcriptionVM.totalCorrections > 0 {
@@ -361,6 +497,7 @@ struct TranscriptionView: View {
                             .sheet(isPresented: $isShowingMailView) {
                                 MailView(
                                     recipient: feedbackRecipient,
+                                    ccRecipients: caregiverCCEmail.isEmpty ? nil : [caregiverCCEmail],
                                     subject: "SpeakEasy Feedback Report",
                                     body: transcriptionVM.prepareFeedbackReport(userEmail: userEmail),
                                     attachments: transcriptionVM.getFeedbackAudioURLs(),
@@ -401,7 +538,7 @@ struct TranscriptionView: View {
                     HStack(spacing: 8) {
                         Image(systemName: transcriptionVM.isCustomModel ? "sparkles.rectangle.stack.fill" : "checkmark.circle.fill")
                             .font(isPad ? .title3 : .caption)
-                        Text(transcriptionVM.isCustomModel ? "Custom (\(transcriptionVM.currentModelDisplay))" : "Base (Whisper Small)")
+                        Text(transcriptionVM.isCustomModel ? "Custom" : "Base")
                             .font(isPad ? .title3.bold() : .caption.bold())
                     }
                     .foregroundColor(.white)
@@ -566,11 +703,20 @@ struct TranscriptionView: View {
                             }
                         }
                     }
-                    .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing)
-                    .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
+                    .disabled(transcriptionVM.isDownloadingModel || transcriptionVM.isTranscribing)
+                    .opacity((transcriptionVM.isDownloadingModel || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
                 }
                 .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 60)
             }
+            } // Close else block
+        }
+        .confirmationDialog("Remove Base Model?", isPresented: $isShowingDeleteBaseModelConfirmation, titleVisibility: .visible) {
+            Button("Remove Base Model", role: .destructive) {
+                transcriptionVM.deleteBaseModel()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete the downloaded Whisper base model (~460 MB) from your device. You can download it again anytime from the Transcribe tab.")
         }
         .sheet(isPresented: $isShowingModelSelection) {
             NavigationView {

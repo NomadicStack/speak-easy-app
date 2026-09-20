@@ -5,12 +5,13 @@ SpeakEasy is a specialized iPad application designed to bridge the communication
 ## Key Features
 
 - **Local AI Inference:** Both transcription and AI generation happen 100% on-device. No audio or text data ever leaves the device, ensuring total privacy.
-- **Accurate Transcription:** Uses Apple's Neural Engine via **WhisperKit** to transcribe dysarthric speech. By default, auto-downloads a free `openai_whisper-small` model from WhisperKit's public hub.
+- **Accurate Transcription:** Uses Apple's Neural Engine via **WhisperKit** to transcribe dysarthric speech. Base model (`openai_whisper-small`, ~460 MB) is downloaded on-demand upon user confirmation on the Transcribe tab, allowing Voice Studio data collection to function without needing to download Whisper.
 - **Custom Model Import:** Users with a fine-tuned speech model can enter an access token in Settings to download and swap in their personalized Whisper model.
 - **Single-Model Storage Optimization:** SpeakEasy automatically maintains only one speech model on disk at a time (~460MB), purging cached base files when custom models are imported and restoring the base model when reverted.
 - **Transparent Model Indicator:** Real-time badge on the Transcribe tab displays the active model (`✓ Base (Whisper Small)` or `✨ Custom (ModelName)`).
 - **Smart Speak (AAC Expander):** Uses a local **Gemma 4 (2B)** LLM via Google's official **LiteRT-LM** (`LiteRTLM`) to expand shorthand phrases and quick-chip shortcuts into fully formed sentences.
 - **Accessibility-First UI:** Features massive typography, responsive iPad layouts, and customizable Quick Chips.
+- **Voice Studio (In-App Data Collection):** An accessible 10-phrase recording studio for gathering personalized speech data. Automatically packages 16kHz mono WAVs and pre-formatted metadata into a `.zip` archive for direct export via Email (with Caregiver CC) or AirDrop.
 - **Native Integration:** Spoken output via iPadOS Text-to-Speech (`AVSpeechSynthesizer`) and direct integration with the Messages app.
 
 ## Storage & Privacy
@@ -35,11 +36,12 @@ SpeakEasy downloads AI models directly to the device to guarantee offline operat
 ## Project Structure
 
 - `DysarthriaApp/`: Source code for the main iPad application.
-  - Contains Views, ViewModels, Services (`AudioRecorder`, `TranscriptionViewModel`, `AACViewModel`, `GemmaService`, `TokenService`, `KeychainHelper`).
+  - Contains Views, ViewModels, Services (`AudioRecorder`, `TranscriptionViewModel`, `AACViewModel`, `TrainingSessionManager`, `PromptDeckProvider`, `GemmaService`, `TokenService`, `KeychainHelper`).
 - `backend/`: Firebase Cloud Functions and Firestore rules configuration for token validation.
 - `ml/whisper_finetuning/`: Python pipeline for training the custom Whisper ASR model.
-  - Includes training loops, metadata normalization, and checkpoint evaluation by WER/CER.
+  - Includes training loops, archive ingestion (`import_voice_session_archive.py`), metadata normalization, and checkpoint evaluation by WER/CER.
 - `docs/`: Technical documentation.
+  - `voice_data_collection_and_processing.md`: Complete guide on in-app voice data collection, ZIP packaging, and ML ingestion.
   - `architecture_overview.md`: Complete system architecture and component breakdown.
   - `token_access_control.md`: Detailed configuration and setup guide for access control.
   - `aac-expander-design.md`: Design philosophy for the Smart Speak feature.

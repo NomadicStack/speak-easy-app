@@ -1,13 +1,24 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import MessageUI
 
 struct ModelSelectionView: View {
     @ObservedObject var modelManager = ModelManager.shared
     @ObservedObject var tokenService = TokenService.shared
+    @ObservedObject var sessionManager = TrainingSessionManager.shared
     @Environment(\.dismiss) var dismiss
     @AppStorage("use_ai_simulation") var useSimulation: Bool = false
     @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
     @AppStorage("user_name") var userName: String = "User"
+    @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("data_collection_email") var dataCollectionEmail: String = ""
+    @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
+    
+    @State private var isShowingMailView = false
+    @State private var preparedZipURL: URL? = nil
+    @State private var mailSubject = ""
+    @State private var mailBody = ""
+    @State private var isShowingDeleteBaseModelConfirmation = false
     
     @ObservedObject var contactManager = ContactManager.shared
     @State private var newContactName: String = ""
@@ -166,7 +177,77 @@ struct ModelSelectionView: View {
                 .accentColor(.purple)
             }
             
-            // 4. Testing & Debug (Collapsible)
+            // 4. Voice Training & Data Export
+            Section(header: Text("Voice Training & Data Export").font(isPad ? .title3.bold() : .caption.bold()),
+                    footer: Text("Audio recordings are stored strictly on-device. When exported from Voice Studio, data is packaged and sent directly to these email addresses.").font(isPad ? .body : .caption)) {
+                DisclosureGroup("Email Configuration") {
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Data Collection Recipient Email")
+                                .font(isPad ? .headline : .caption.bold())
+                                .foregroundColor(.secondary)
+                            TextField("researcher@example.com", text: $dataCollectionEmail)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
+                                .autocapitalization(.none)
+                                .keyboardType(.emailAddress)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Caregiver Email (CC on Export)")
+                                .font(isPad ? .headline : .caption.bold())
+                                .foregroundColor(.secondary)
+                            TextField("caregiver@example.com (optional)", text: $caregiverCCEmail)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .font(isPad ? .title3 : .body)
+                                .autocapitalization(.none)
+                                .keyboardType(.emailAddress)
+                        }
+                    }
+                    .padding(.vertical, 10)
+                }
+                .font(isPad ? .title3.bold() : .headline)
+                .accentColor(.blue)
+                
+                // Pending Live Corrections Batch
+                if !sessionManager.pendingLiveCorrections.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "sparkles.rectangle.stack.fill")
+                                .font(isPad ? .title3 : .headline)
+                                .foregroundColor(.orange)
+                            Text("\(sessionManager.pendingLiveCorrections.count) Pending Speech Corrections")
+                                .font(isPad ? .title3.bold() : .headline.bold())
+                        }
+                        
+                        Text("Corrections saved during live conversations are packaged into a Whisper-ready ZIP archive.")
+                            .font(isPad ? .body : .caption)
+                            .foregroundColor(.secondary)
+                        
+                        Button(action: {
+                            sendCorrectionsBatch()
+                        }) {
+                            Label("Send Corrections Batch", systemImage: "envelope.fill")
+                                .font(isPad ? .title3.bold() : .headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(isPad ? 14 : 10)
+                                .background(Color.orange)
+                                .cornerRadius(10)
+                        }
+                        
+                        Button(role: .destructive, action: {
+                            sessionManager.clearLiveCorrections()
+                        }) {
+                            Label("Clear Pending Corrections", systemImage: "trash")
+                                .font(isPad ? .subheadline : .caption)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+            
+            // 5. Testing & Debug (Collapsible)
             Section(header: Text("Advanced").font(isPad ? .title3.bold() : .caption.bold())) {
                 DisclosureGroup("Developer Settings") {
                     VStack(alignment: .leading, spacing: 25) {
@@ -224,7 +305,7 @@ struct ModelSelectionView: View {
                         Label("Revert to Base Model (Whisper Small)", systemImage: "arrow.counterclockwise")
                             .font(isPad ? .title3 : .headline)
                     }
-                } else {
+                } else if TranscriptionViewModel.isBaseModelAvailable {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
@@ -233,6 +314,46 @@ struct ModelSelectionView: View {
                             Text("Active: Whisper Small (Default)")
                                 .font(isPad ? .title3.bold() : .headline)
                             Text("Standard open-source model")
+                                .font(isPad ? .headline : .caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, isPad ? 10 : 5)
+                    
+                    Button(role: .destructive, action: {
+                        isShowingDeleteBaseModelConfirmation = true
+                    }) {
+                        Label("Remove Base Model (~460 MB)", systemImage: "trash")
+                            .font(isPad ? .title3 : .headline)
+                    }
+                    
+                    NavigationLink {
+                        TokenEntryView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.down")
+                                .foregroundColor(.blue)
+                                .font(isPad ? .title3 : .body)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Import Custom Model")
+                                    .font(isPad ? .title3.bold() : .headline)
+                                Text("Use an access token to swap in a personalized model")
+                                    .font(isPad ? .headline : .caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, isPad ? 10 : 5)
+                    }
+                } else {
+                    HStack {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundColor(.secondary)
+                            .font(isPad ? .title3 : .body)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Base Model: Not Downloaded")
+                                .font(isPad ? .title3.bold() : .headline)
+                            Text("Download on Transcribe tab (~460 MB)")
                                 .font(isPad ? .headline : .caption)
                                 .foregroundColor(.secondary)
                         }
@@ -279,6 +400,62 @@ struct ModelSelectionView: View {
                 }
                 .font(isPad ? .title3.bold() : .headline.bold())
             }
+        }
+        .confirmationDialog("Remove Base Model?", isPresented: $isShowingDeleteBaseModelConfirmation, titleVisibility: .visible) {
+            Button("Remove Base Model", role: .destructive) {
+                TranscriptionViewModel.deleteBaseModel()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete the downloaded Whisper base model (~460 MB) from your device. You can download it again anytime from the Transcribe tab.")
+        }
+        .sheet(isPresented: $isShowingMailView) {
+            if let zipURL = preparedZipURL {
+                MailView(
+                    recipient: dataCollectionEmail.isEmpty ? feedbackRecipient : dataCollectionEmail,
+                    ccRecipients: caregiverCCEmail.isEmpty ? nil : [caregiverCCEmail],
+                    subject: mailSubject,
+                    body: mailBody,
+                    attachments: [zipURL],
+                    preferredSenderEmail: nil
+                ) { result in
+                    if case .success(let mailResult) = result, mailResult == .sent {
+                        sessionManager.clearLiveCorrections()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func sendCorrectionsBatch() {
+        guard let zipURL = sessionManager.exportLiveCorrectionsArchive(speakerName: userName) else { return }
+        self.preparedZipURL = zipURL
+        self.mailSubject = "SpeakEasy Speech Corrections Data - \(userName)"
+        self.mailBody = """
+        SpeakEasy Speech Corrections Report
+        Speaker: \(userName)
+        Total Corrections: \(sessionManager.pendingLiveCorrections.count)
+        Date: \(Date().formatted(date: .abbreviated, time: .shortened))
+
+        Attached is the corrections ZIP archive containing 16kHz mono WAV recordings and metadata.csv.
+        """
+        if MFMailComposeViewController.canSendMail() {
+            isShowingMailView = true
+        } else {
+            presentShareSheet(for: zipURL)
+        }
+    }
+    
+    private func presentShareSheet(for fileURL: URL) {
+        let av = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            if let popover = av.popoverPresentationController {
+                popover.sourceView = rootVC.view
+                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            rootVC.present(av, animated: true)
         }
     }
 }

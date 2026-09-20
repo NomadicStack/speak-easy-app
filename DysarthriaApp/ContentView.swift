@@ -528,7 +528,7 @@ struct TranscriptionView: View {
                     HStack(spacing: 8) {
                         Image(systemName: transcriptionVM.isCustomModel ? "sparkles.rectangle.stack.fill" : "checkmark.circle.fill")
                             .font(isPad ? .title3 : .caption)
-                        Text(transcriptionVM.isCustomModel ? "Custom (\(transcriptionVM.currentModelDisplay))" : "Base (Whisper Small)")
+                        Text(transcriptionVM.isCustomModel ? "Custom" : "Base")
                             .font(isPad ? .title3.bold() : .caption.bold())
                     }
                     .foregroundColor(.white)

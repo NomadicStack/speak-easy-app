@@ -5,7 +5,7 @@ SpeakEasy is a specialized iPad application designed to bridge the communication
 ## Key Features
 
 - **Local AI Inference:** Both transcription and AI generation happen 100% on-device. No audio or text data ever leaves the device, ensuring total privacy.
-- **Accurate Transcription:** Uses Apple's Neural Engine via **WhisperKit** to transcribe dysarthric speech. By default, auto-downloads a free `openai_whisper-small` model from WhisperKit's public hub.
+- **Accurate Transcription:** Uses Apple's Neural Engine via **WhisperKit** to transcribe dysarthric speech. Base model (`openai_whisper-small`, ~460 MB) is downloaded on-demand upon user confirmation on the Transcribe tab, allowing Voice Studio data collection to function without needing to download Whisper.
 - **Custom Model Import:** Users with a fine-tuned speech model can enter an access token in Settings to download and swap in their personalized Whisper model.
 - **Single-Model Storage Optimization:** SpeakEasy automatically maintains only one speech model on disk at a time (~460MB), purging cached base files when custom models are imported and restoring the base model when reverted.
 - **Transparent Model Indicator:** Real-time badge on the Transcribe tab displays the active model (`✓ Base (Whisper Small)` or `✨ Custom (ModelName)`).

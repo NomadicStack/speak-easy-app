@@ -359,8 +359,8 @@ struct AACExpanderView: View {
                     }
                 }
             }
-            .disabled(transcriptionVM.isTranscribing || viewModel.isGenerating)
-            .opacity((transcriptionVM.isTranscribing || viewModel.isGenerating) ? 0.5 : 1.0)
+            .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing || viewModel.isGenerating)
+            .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing || viewModel.isGenerating) ? 0.5 : 1.0)
         }
         .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 40)
     }

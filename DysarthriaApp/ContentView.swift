@@ -284,6 +284,8 @@ struct TranscriptionView: View {
     
     @State private var isShowingMailView = false
     @State private var isShowingModelSelection = false
+    @State private var showDownloadConfirmation = false
+    @State private var isShowingDeleteBaseModelConfirmation = false
     
     @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
     @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
@@ -325,15 +327,46 @@ struct TranscriptionView: View {
             }
             
             if !transcriptionVM.isModelLoaded {
-                VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(isPad ? 2.0 : 1.2)
-                    Text(transcriptionVM.modelLoadingMessage)
-                        .font(isPad ? .title : .headline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+                if transcriptionVM.isDownloadingModel {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(isPad ? 2.0 : 1.2)
+                        Text(transcriptionVM.modelLoadingMessage)
+                            .font(isPad ? .title : .headline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                } else {
+                    VStack(spacing: 16) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: isPad ? 60 : 44))
+                            .foregroundColor(.blue)
+                        
+                        Text("Whisper Base Model Required")
+                            .font(isPad ? .title.bold() : .title3.bold())
+                        
+                        Text("Speech transcription requires downloading the Whisper base model (~460 MB).\nVoice Studio data collection works without it.")
+                            .font(isPad ? .headline : .subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Button(action: {
+                            showDownloadConfirmation = true
+                        }) {
+                            Label("Download Base Model (~460 MB)", systemImage: "icloud.and.arrow.down.fill")
+                                .font(isPad ? .title3.bold() : .headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, isPad ? 28 : 20)
+                                .padding(.vertical, isPad ? 16 : 12)
+                                .background(Color.blue)
+                                .cornerRadius(14)
+                        }
+                        .padding(.top, 4)
+                    }
+                    .padding()
                 }
-                .padding()
             } else if !transcriptionVM.isEditing {
                 DisclosureGroup("Advanced & Stats") {
                     VStack(alignment: .leading, spacing: 20) {
@@ -394,6 +427,20 @@ struct TranscriptionView: View {
                                 .background(Color.red.opacity(0.1))
                                 .foregroundColor(.red)
                                 .cornerRadius(12)
+                        }
+                        
+                        if transcriptionVM.isBaseModelAvailable && !transcriptionVM.isCustomModel {
+                            Button(role: .destructive, action: {
+                                isShowingDeleteBaseModelConfirmation = true
+                            }) {
+                                Label("Remove Base Model (~460 MB)", systemImage: "trash")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(15)
+                                    .background(Color.red.opacity(0.1))
+                                    .foregroundColor(.red)
+                                    .cornerRadius(12)
+                            }
                         }
 
                         // Report Section
@@ -610,6 +657,10 @@ struct TranscriptionView: View {
                     
                     // Record Button
                     Button(action: {
+                        if !transcriptionVM.isModelLoaded {
+                            showDownloadConfirmation = true
+                            return
+                        }
                         if audioRecorder.isRecording {
                             if let url = audioRecorder.stopRecording() {
                                 transcriptionVM.transcribeAudio(at: url)
@@ -640,11 +691,32 @@ struct TranscriptionView: View {
                             }
                         }
                     }
-                    .disabled(!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing)
-                    .opacity((!transcriptionVM.isModelLoaded || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
+                    .disabled(transcriptionVM.isDownloadingModel || transcriptionVM.isTranscribing)
+                    .opacity((transcriptionVM.isDownloadingModel || transcriptionVM.isTranscribing) ? 0.5 : 1.0)
                 }
                 .padding(.bottom, isPad ? (isLandscape ? 40 : 100) : 60)
             }
+        }
+        .onAppear {
+            if !transcriptionVM.isModelLoaded && !transcriptionVM.isDownloadingModel && !transcriptionVM.isAnyModelAvailable {
+                showDownloadConfirmation = true
+            }
+        }
+        .alert("Download Speech Model?", isPresented: $showDownloadConfirmation) {
+            Button("Download (~460 MB)") {
+                transcriptionVM.downloadAndLoadBaseModel()
+            }
+            Button("Not Now", role: .cancel) {}
+        } message: {
+            Text("Transcribe requires downloading the Whisper base model (~460 MB). Voice Studio (Data Collection) works without it.\n\nWould you like to download it now?")
+        }
+        .confirmationDialog("Remove Base Model?", isPresented: $isShowingDeleteBaseModelConfirmation, titleVisibility: .visible) {
+            Button("Remove Base Model", role: .destructive) {
+                transcriptionVM.deleteBaseModel()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete the downloaded Whisper base model (~460 MB) from your device. You can download it again anytime from the Transcribe tab.")
         }
         .sheet(isPresented: $isShowingModelSelection) {
             NavigationView {

@@ -17,6 +17,7 @@ struct ModelSelectionView: View {
     @State private var preparedZipURL: URL? = nil
     @State private var mailSubject = ""
     @State private var mailBody = ""
+    @State private var isShowingDeleteBaseModelConfirmation = false
     
     @ObservedObject var contactManager = ContactManager.shared
     @State private var newContactName: String = ""
@@ -303,7 +304,7 @@ struct ModelSelectionView: View {
                         Label("Revert to Base Model (Whisper Small)", systemImage: "arrow.counterclockwise")
                             .font(isPad ? .title3 : .headline)
                     }
-                } else {
+                } else if TranscriptionViewModel.isBaseModelAvailable {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
@@ -312,6 +313,46 @@ struct ModelSelectionView: View {
                             Text("Active: Whisper Small (Default)")
                                 .font(isPad ? .title3.bold() : .headline)
                             Text("Standard open-source model")
+                                .font(isPad ? .headline : .caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, isPad ? 10 : 5)
+                    
+                    Button(role: .destructive, action: {
+                        isShowingDeleteBaseModelConfirmation = true
+                    }) {
+                        Label("Remove Base Model (~460 MB)", systemImage: "trash")
+                            .font(isPad ? .title3 : .headline)
+                    }
+                    
+                    NavigationLink {
+                        TokenEntryView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.down")
+                                .foregroundColor(.blue)
+                                .font(isPad ? .title3 : .body)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Import Custom Model")
+                                    .font(isPad ? .title3.bold() : .headline)
+                                Text("Use an access token to swap in a personalized model")
+                                    .font(isPad ? .headline : .caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, isPad ? 10 : 5)
+                    }
+                } else {
+                    HStack {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundColor(.secondary)
+                            .font(isPad ? .title3 : .body)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Base Model: Not Downloaded")
+                                .font(isPad ? .title3.bold() : .headline)
+                            Text("Download on Transcribe tab (~460 MB)")
                                 .font(isPad ? .headline : .caption)
                                 .foregroundColor(.secondary)
                         }
@@ -358,6 +399,14 @@ struct ModelSelectionView: View {
                 }
                 .font(isPad ? .title3.bold() : .headline.bold())
             }
+        }
+        .confirmationDialog("Remove Base Model?", isPresented: $isShowingDeleteBaseModelConfirmation, titleVisibility: .visible) {
+            Button("Remove Base Model", role: .destructive) {
+                TranscriptionViewModel.deleteBaseModel()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete the downloaded Whisper base model (~460 MB) from your device. You can download it again anytime from the Transcribe tab.")
         }
         .sheet(isPresented: $isShowingMailView) {
             if let zipURL = preparedZipURL {

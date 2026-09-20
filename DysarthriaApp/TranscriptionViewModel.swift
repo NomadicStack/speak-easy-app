@@ -18,6 +18,8 @@ class TranscriptionViewModel: ObservableObject {
     @Published var modelLoadingMessage: String = "Loading model..."
     @Published var isModelLoaded: Bool = false
     
+    @Published var isDownloadingModel: Bool = false
+    
     @Published var currentModelDisplay: String = "Whisper Small"
     @Published var isCustomModel: Bool = false
     
@@ -33,24 +35,103 @@ class TranscriptionViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var isInitializing = false
     
+    public static func findBaseModelDirectory() -> URL? {
+        let fileManager = FileManager.default
+        let searchBases: [URL] = [
+            fileManager.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("huggingface"),
+            fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent("huggingface"),
+            fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.appendingPathComponent("huggingface")
+        ].compactMap { $0 }
+        
+        for base in searchBases {
+            let repoDir = base.appendingPathComponent("models").appendingPathComponent("argmaxinc/whisperkit-coreml")
+            guard fileManager.fileExists(atPath: repoDir.path) else { continue }
+            
+            if let subfolders = try? fileManager.contentsOfDirectory(at: repoDir, includingPropertiesForKeys: nil) {
+                for folder in subfolders where folder.lastPathComponent.contains("whisper-small") {
+                    let audioEncoder = folder.appendingPathComponent("AudioEncoder.mlmodelc")
+                    let audioEncoderPkg = folder.appendingPathComponent("AudioEncoder.mlpackage")
+                    if fileManager.fileExists(atPath: audioEncoder.path) || fileManager.fileExists(atPath: audioEncoderPkg.path) {
+                        return folder
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    
+    public static var isBaseModelAvailable: Bool {
+        findBaseModelDirectory() != nil
+    }
+    
+    public var isBaseModelAvailable: Bool {
+        Self.isBaseModelAvailable
+    }
+    
+    public var isCustomModelAvailable: Bool {
+        TokenService.shared.findModelDirectory() != nil
+    }
+    
+    public var isAnyModelAvailable: Bool {
+        isCustomModelAvailable || isBaseModelAvailable
+    }
+    
+    public static let baseModelDeletedNotification = Notification.Name("SpeakEasyBaseModelDeletedNotification")
+    
+    public static func deleteBaseModel() {
+        TokenService.shared.deleteBaseModelCache()
+        NotificationCenter.default.post(name: baseModelDeletedNotification, object: nil)
+    }
+    
+    public func deleteBaseModel() {
+        self.whisperKit = nil
+        self.isModelLoaded = false
+        self.isCustomModel = false
+        self.currentModelDisplay = "None"
+        self.modelLoadingMessage = "Base model not downloaded."
+        Self.deleteBaseModel()
+    }
+    
     init() {
         self.totalTranscriptions = UserDefaults.standard.integer(forKey: "total_transcriptions")
         self.totalCorrections = UserDefaults.standard.integer(forKey: "total_corrections")
         
-        // Always start loading a model immediately on launch
-        Task { await self.initializeWhisperKit() }
+        // Only load if a local model (custom or base) is already available.
+        // Do NOT auto-download on launch so Voice Studio data collection works without a Whisper model.
+        Task { await self.loadAvailableModelIfPresent() }
         
-        // Listen for custom model activation or removal — reinitialize WhisperKit
+        // Listen for base model deletion
+        NotificationCenter.default.publisher(for: Self.baseModelDeletedNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.whisperKit = nil
+                self.isModelLoaded = false
+                self.isCustomModel = false
+                self.currentModelDisplay = "None"
+                self.modelLoadingMessage = "Base model not downloaded."
+            }
+            .store(in: &cancellables)
+        
+        // Listen for custom model activation or removal
         TokenService.shared.$status
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
                 guard let self = self else { return }
                 switch status {
-                case .active, .none:
-                    // Custom model was activated or deactivated — reinitialize model
+                case .active:
                     if !self.isTranscribing {
-                        Task { await self.initializeWhisperKit() }
+                        Task { await self.loadAvailableModelIfPresent() }
+                    }
+                case .none:
+                    // Custom model was deactivated — reset and check if base model is available locally
+                    self.whisperKit = nil
+                    self.isModelLoaded = false
+                    self.isCustomModel = false
+                    self.currentModelDisplay = "None"
+                    if !self.isTranscribing {
+                        Task { await self.loadAvailableModelIfPresent() }
                     }
                 default:
                     break
@@ -59,7 +140,29 @@ class TranscriptionViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func initializeWhisperKit() async {
+    func loadAvailableModelIfPresent() async {
+        guard !isInitializing else { return }
+        
+        // Priority 1: Custom model (if available from token)
+        if let modelDirURL = TokenService.shared.findModelDirectory() {
+            await loadCustomModel(from: modelDirURL)
+            return
+        }
+        
+        // Priority 2: Base model (ONLY IF ALREADY DOWNLOADED LOCALLY)
+        if let baseModelDirURL = Self.findBaseModelDirectory() {
+            await loadLocalBaseModel(from: baseModelDirURL)
+            return
+        }
+        
+        // No local model available — do NOT auto-download!
+        self.isModelLoaded = false
+        self.isCustomModel = false
+        self.currentModelDisplay = "None"
+        self.modelLoadingMessage = "Base model not downloaded."
+    }
+    
+    func loadCustomModel(from modelDirURL: URL) async {
         guard !isInitializing else { return }
         isInitializing = true
         defer { isInitializing = false }
@@ -67,42 +170,47 @@ class TranscriptionViewModel: ObservableObject {
         self.isModelLoaded = false
         self.whisperKit = nil
         
-        // Priority 1: Custom model (if available from token)
-        if let modelDirURL = TokenService.shared.findModelDirectory() {
-            do {
-                let modelName = modelDirURL.lastPathComponent
-                self.modelLoadingMessage = "Loading custom model (\(modelName))..."
-                
-                let config = WhisperKitConfig(
-                    model: modelName,
-                    modelFolder: modelDirURL.path,
-                    tokenizerFolder: modelDirURL,
-                    computeOptions: ModelComputeOptions(
-                        melCompute: .cpuAndNeuralEngine,
-                        audioEncoderCompute: .cpuAndNeuralEngine,
-                        textDecoderCompute: .cpuAndNeuralEngine
-                    ),
-                    download: false
-                )
-                
-                self.whisperKit = try await WhisperKit(config)
-                self.isModelLoaded = true
-                self.isCustomModel = true
-                self.currentModelDisplay = modelName
-                self.modelLoadingMessage = "Model ready (\(modelName))"
-                
-                // Purge base model cache to conserve device storage
-                TokenService.shared.deleteBaseModelCache()
-                return
-            } catch {
-                print("Custom model failed, falling back to free model: \(error)")
-            }
-        }
-        
-        // Priority 2: Free model (auto-download from WhisperKit hub)
         do {
-            self.modelLoadingMessage = "Downloading speech model... This may take a few minutes on first launch."
+            let modelName = modelDirURL.lastPathComponent
+            self.modelLoadingMessage = "Loading custom model (\(modelName))..."
             
+            let config = WhisperKitConfig(
+                model: modelName,
+                modelFolder: modelDirURL.path,
+                tokenizerFolder: modelDirURL,
+                computeOptions: ModelComputeOptions(
+                    melCompute: .cpuAndNeuralEngine,
+                    audioEncoderCompute: .cpuAndNeuralEngine,
+                    textDecoderCompute: .cpuAndNeuralEngine
+                ),
+                download: false
+            )
+            
+            self.whisperKit = try await WhisperKit(config)
+            self.isModelLoaded = true
+            self.isCustomModel = true
+            self.currentModelDisplay = modelName
+            self.modelLoadingMessage = "Model ready (\(modelName))"
+            
+            // Purge base model cache to conserve device storage
+            TokenService.shared.deleteBaseModelCache()
+        } catch {
+            print("Custom model failed to load: \(error)")
+            self.isModelLoaded = false
+            self.modelLoadingMessage = "Failed to load custom model: \(error.localizedDescription)"
+        }
+    }
+    
+    func loadLocalBaseModel(from baseModelDirURL: URL) async {
+        guard !isInitializing else { return }
+        isInitializing = true
+        defer { isInitializing = false }
+        
+        self.isModelLoaded = false
+        self.whisperKit = nil
+        self.modelLoadingMessage = "Loading Whisper Small..."
+        
+        do {
             let config = WhisperKitConfig(
                 model: "openai_whisper-small",
                 computeOptions: ModelComputeOptions(
@@ -119,8 +227,39 @@ class TranscriptionViewModel: ObservableObject {
             self.modelLoadingMessage = "Model ready (Whisper Small)"
         } catch {
             self.modelLoadingMessage = "Failed to load model: \(error.localizedDescription)"
-            print("WhisperKit initialization error: \(error)")
+            print("WhisperKit base model load error: \(error)")
             self.isModelLoaded = false
+        }
+    }
+    
+    /// Triggered upon user confirmation on the Transcribe tab to download the Whisper base model.
+    func downloadAndLoadBaseModel() {
+        guard !isInitializing, !isDownloadingModel else { return }
+        self.isDownloadingModel = true
+        self.modelLoadingMessage = "Downloading speech model... This may take a few minutes on first launch."
+        
+        Task {
+            do {
+                let config = WhisperKitConfig(
+                    model: "openai_whisper-small",
+                    computeOptions: ModelComputeOptions(
+                        melCompute: .cpuAndNeuralEngine,
+                        audioEncoderCompute: .cpuAndNeuralEngine,
+                        textDecoderCompute: .cpuAndNeuralEngine
+                    )
+                )
+                
+                self.whisperKit = try await WhisperKit(config)
+                self.isModelLoaded = true
+                self.isCustomModel = false
+                self.currentModelDisplay = "Whisper Small"
+                self.modelLoadingMessage = "Model ready (Whisper Small)"
+            } catch {
+                self.modelLoadingMessage = "Failed to download model: \(error.localizedDescription)"
+                print("WhisperKit download error: \(error)")
+                self.isModelLoaded = false
+            }
+            self.isDownloadingModel = false
         }
     }
     

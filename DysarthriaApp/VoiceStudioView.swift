@@ -7,18 +7,16 @@ public struct VoiceStudioView: View {
     @ObservedObject var deckProvider = PromptDeckProvider.shared
     @ObservedObject var customStore = CustomDeckStore.shared
     
-    @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("data_collection_email") var dataCollectionEmail: String = ""
     @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
     @AppStorage("user_name") var userName: String = "User"
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.verticalSizeClass) var verticalSizeClass
     
-    @State private var isShowingMailView = false
+    @State private var activeSheet: VoiceStudioActiveSheet? = nil
     @State private var isShowingShareSheet = false
-    @State private var isShowingCustomDeckEditor = false
     @State private var isShowingResetConfirmation = false
-    @State private var selectedDeckForDetail: PromptDeck? = nil
     @State private var preparedZipURL: URL? = nil
     @State private var mailSubject = ""
     @State private var mailBody = ""
@@ -41,39 +39,40 @@ public struct VoiceStudioView: View {
                 }
             }
             .navigationBarHidden(sessionManager.activeDeck != nil)
-            .sheet(isPresented: $isShowingMailView) {
-                if let zipURL = preparedZipURL {
-                    MailView(
-                        recipient: feedbackRecipient,
-                        ccRecipients: caregiverCCEmail.isEmpty ? nil : [caregiverCCEmail],
-                        subject: mailSubject,
-                        body: mailBody,
-                        attachments: [zipURL],
-                        preferredSenderEmail: nil
-                    ) { result in
-                        if case .success(let mailResult) = result, mailResult == .sent {
-                            if zipURL.lastPathComponent.contains("Corrections") {
-                                sessionManager.clearLiveCorrections()
-                            } else {
-                                if let deckId = sessionManager.activeDeck?.id {
-                                    customStore.lockDeck(id: deckId)
-                                }
+        }
+        .navigationViewStyle(.stack)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .settings:
+                VoiceStudioSettingsView()
+            case .mail(let zipURL):
+                MailView(
+                    recipient: dataCollectionEmail,
+                    ccRecipients: caregiverCCEmail.isEmpty ? nil : [caregiverCCEmail],
+                    subject: mailSubject,
+                    body: mailBody,
+                    attachments: [zipURL],
+                    preferredSenderEmail: nil
+                ) { result in
+                    if case .success(let mailResult) = result, mailResult == .sent {
+                        if zipURL.lastPathComponent.contains("Corrections") {
+                            sessionManager.clearLiveCorrections()
+                        } else {
+                            if let deckId = sessionManager.activeDeck?.id {
+                                customStore.lockDeck(id: deckId)
                             }
                         }
                     }
                 }
-            }
-            .sheet(isPresented: $isShowingCustomDeckEditor) {
+            case .customDeckEditor:
                 CustomDeckEditorView(customStore: customStore, isPad: isPad)
-            }
-            .sheet(item: $selectedDeckForDetail) { deck in
+            case .deckDetail(let deckId):
                 NavigationView {
-                    DeckPhrasesDetailView(deckId: deck.id, customStore: customStore, isPad: isPad)
+                    DeckPhrasesDetailView(deckId: deckId, customStore: customStore, isPad: isPad)
                 }
                 .navigationViewStyle(.stack)
             }
         }
-        .navigationViewStyle(.stack)
     }
     
     // MARK: - View 1: Deck Selection Home
@@ -82,14 +81,24 @@ public struct VoiceStudioView: View {
             VStack(alignment: .leading, spacing: isPad ? 35 : 20) {
                 // Header Banner
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack {
+                    HStack(spacing: 12) {
                         Text("Voice Studio")
                             .font(.system(size: isPad ? 44 : 30, weight: .bold))
                             .foregroundColor(.blue)
                         Spacer()
                         
+                        // Voice Studio Settings
+                        Button(action: { activeSheet = .settings }) {
+                            Image(systemName: "gearshape.fill")
+                                .font(isPad ? .title2 : .title3)
+                                .foregroundColor(.secondary)
+                                .padding(isPad ? 10 : 8)
+                                .background(Color.gray.opacity(0.12))
+                                .clipShape(Circle())
+                        }
+                        
                         // Custom decks management
-                        Button(action: { isShowingCustomDeckEditor = true }) {
+                        Button(action: { activeSheet = .customDeckEditor }) {
                             Label("Manage Decks", systemImage: "folder.badge.plus")
                                 .font(isPad ? .title3.bold() : .subheadline.bold())
                                 .foregroundColor(.blue)
@@ -123,7 +132,7 @@ public struct VoiceStudioView: View {
                         
                         Spacer()
                         
-                        Button(action: { isShowingCustomDeckEditor = true }) {
+                        Button(action: { activeSheet = .customDeckEditor }) {
                             Label("New Deck", systemImage: "plus.circle.fill")
                                 .font(isPad ? .headline.bold() : .subheadline.bold())
                                 .foregroundColor(.blue)
@@ -141,7 +150,7 @@ public struct VoiceStudioView: View {
                                     sessionManager.startSession(with: deck)
                                 },
                                 onManage: deck.isCustom ? {
-                                    selectedDeckForDetail = deck
+                                    activeSheet = .deckDetail(deck.id)
                                 } : nil
                             )
                         }
@@ -177,7 +186,7 @@ public struct VoiceStudioView: View {
                 Button(action: {
                     sendLiveCorrections()
                 }) {
-                    Label("Send Corrections Archive", systemImage: "envelope.fill")
+                    Label(dataCollectionEmail.isEmpty ? "Send Corrections Archive" : "Send Corrections to \(dataCollectionEmail)", systemImage: "envelope.fill")
                         .font(isPad ? .title3.bold() : .headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -545,8 +554,15 @@ public struct VoiceStudioView: View {
                         HStack(spacing: 12) {
                             Image(systemName: "envelope.fill")
                                 .font(isPad ? .title3 : .headline)
-                            Text("Send Voice Data via Email")
-                                .font(isPad ? .title3.bold() : .headline.bold())
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Send Voice Data via Email")
+                                    .font(isPad ? .title3.bold() : .headline.bold())
+                                if !dataCollectionEmail.isEmpty {
+                                    Text("To: \(dataCollectionEmail)")
+                                        .font(isPad ? .subheadline : .caption)
+                                        .opacity(0.9)
+                                }
+                            }
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -554,6 +570,20 @@ public struct VoiceStudioView: View {
                         .background(Color.blue)
                         .cornerRadius(16)
                         .shadow(color: Color.blue.opacity(0.25), radius: 8, x: 0, y: 4)
+                    }
+                    
+                    if dataCollectionEmail.isEmpty {
+                        Button(action: {
+                            activeSheet = .settings
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "gearshape")
+                                Text("Set recipient email in Settings for one-click sending")
+                                    .underline()
+                            }
+                            .font(isPad ? .subheadline : .caption)
+                            .foregroundColor(.blue)
+                        }
                     }
                     
                     // 2. AirDrop / Share Sheet Fallback
@@ -656,7 +686,7 @@ public struct VoiceStudioView: View {
         """
         
         if MFMailComposeViewController.canSendMail() {
-            isShowingMailView = true
+            activeSheet = .mail(url: zipURL)
         } else {
             // Fallback to native share sheet
             presentShareSheet(for: zipURL)
@@ -678,7 +708,7 @@ public struct VoiceStudioView: View {
         """
         
         if MFMailComposeViewController.canSendMail() {
-            isShowingMailView = true
+            activeSheet = .mail(url: zipURL)
         } else {
             presentShareSheet(for: zipURL)
         }
@@ -1172,3 +1202,128 @@ struct DeckPhrasesDetailView: View {
         }
     }
 }
+
+// MARK: - Voice Studio Active Sheet Enum
+enum VoiceStudioActiveSheet: Identifiable {
+    case settings
+    case mail(url: URL)
+    case customDeckEditor
+    case deckDetail(String)
+    
+    var id: String {
+        switch self {
+        case .settings:
+            return "settings"
+        case .mail(let url):
+            return "mail_\(url.lastPathComponent)"
+        case .customDeckEditor:
+            return "customDeckEditor"
+        case .deckDetail(let deckId):
+            return "deckDetail_\(deckId)"
+        }
+    }
+}
+
+// MARK: - Voice Studio Settings View
+struct VoiceStudioSettingsView: View {
+    @AppStorage("data_collection_email") var dataCollectionEmail: String = ""
+    @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
+    @AppStorage("user_name") var userName: String = "User"
+    
+    @State private var emailInput: String = ""
+    @State private var nameInput: String = ""
+    @State private var ccInput: String = ""
+    
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+    
+    var isPad: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section(
+                    header: Text("Data Collection Recipient").font(isPad ? .headline : .subheadline.bold()),
+                    footer: Text("Enter the email address where your voice training data should be sent (e.g., researcher, clinician, or your email). When set, you can send voice data with a single click.").font(isPad ? .body : .caption)
+                ) {
+                    HStack {
+                        Image(systemName: "envelope.fill")
+                            .foregroundColor(.blue)
+                        TextField("e.g. researcher@example.com", text: $emailInput)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled(true)
+                            .font(isPad ? .title3 : .body)
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Section(
+                    header: Text("Speaker Profile").font(isPad ? .headline : .subheadline.bold()),
+                    footer: Text("Name or identifier included in exported audio files and metadata.csv.").font(isPad ? .body : .caption)
+                ) {
+                    HStack {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.purple)
+                        TextField("Speaker Name", text: $nameInput)
+                            .font(isPad ? .title3 : .body)
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Section(
+                    header: Text("Caregiver / CC (Optional)").font(isPad ? .headline : .subheadline.bold()),
+                    footer: Text("Optional email to receive a carbon copy (CC) of all voice data exports.").font(isPad ? .body : .caption)
+                ) {
+                    HStack {
+                        Image(systemName: "envelope.badge")
+                            .foregroundColor(.secondary)
+                        TextField("caregiver@example.com (optional)", text: $ccInput)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled(true)
+                            .font(isPad ? .title3 : .body)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle("Voice Studio Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        saveAndDismiss()
+                    }
+                    .font(isPad ? .title3.bold() : .headline.bold())
+                }
+            }
+            .onAppear {
+                emailInput = dataCollectionEmail
+                nameInput = userName
+                ccInput = caregiverCCEmail
+            }
+            .onDisappear {
+                saveSettings()
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
+    
+    private func saveSettings() {
+        dataCollectionEmail = emailInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedName.isEmpty {
+            userName = trimmedName
+        }
+        caregiverCCEmail = ccInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private func saveAndDismiss() {
+        saveSettings()
+        dismiss()
+    }
+}
+

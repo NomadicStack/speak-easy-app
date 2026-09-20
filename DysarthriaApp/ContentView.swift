@@ -38,9 +38,18 @@ struct ContentView: View {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
     }
     
+    private var isLandscape: Bool {
+        if let windowScene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first(where: { $0.activationState == .foregroundActive }) {
+            return windowScene.interfaceOrientation.isLandscape
+        }
+        if let windowScene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first {
+            return windowScene.interfaceOrientation.isLandscape
+        }
+        return UIScreen.main.bounds.width > UIScreen.main.bounds.height
+    }
+    
     var body: some View {
         GeometryReader { geometry in
-            let isLandscape = geometry.size.width > geometry.size.height
             let useRail = isPad && isLandscape
             
             if useRail {
@@ -244,6 +253,7 @@ struct ContentView: View {
                 .ignoresSafeArea(.container, edges: .bottom)
             }
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onReceive(transcriptionVM.$isTranscribing) { isTranscribing in
                 // If transcription just finished and we're on the expander tab, trigger expansion
                 if !isTranscribing && selectedTab == 1 {

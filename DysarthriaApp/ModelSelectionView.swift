@@ -11,6 +11,7 @@ struct ModelSelectionView: View {
     @AppStorage("caregiver_phone_number") var caregiverNumber: String = ""
     @AppStorage("user_name") var userName: String = "User"
     @AppStorage("feedback_recipient") var feedbackRecipient: String = "developer@example.com"
+    @AppStorage("data_collection_email") var dataCollectionEmail: String = ""
     @AppStorage("caregiver_cc_email") var caregiverCCEmail: String = ""
     
     @State private var isShowingMailView = false
@@ -182,10 +183,10 @@ struct ModelSelectionView: View {
                 DisclosureGroup("Email Configuration") {
                     VStack(alignment: .leading, spacing: 18) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Developer / Trainer Recipient Email")
+                            Text("Data Collection Recipient Email")
                                 .font(isPad ? .headline : .caption.bold())
                                 .foregroundColor(.secondary)
-                            TextField("developer@example.com", text: $feedbackRecipient)
+                            TextField("researcher@example.com", text: $dataCollectionEmail)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .font(isPad ? .title3 : .body)
                                 .autocapitalization(.none)
@@ -411,7 +412,7 @@ struct ModelSelectionView: View {
         .sheet(isPresented: $isShowingMailView) {
             if let zipURL = preparedZipURL {
                 MailView(
-                    recipient: feedbackRecipient,
+                    recipient: dataCollectionEmail.isEmpty ? feedbackRecipient : dataCollectionEmail,
                     ccRecipients: caregiverCCEmail.isEmpty ? nil : [caregiverCCEmail],
                     subject: mailSubject,
                     body: mailBody,
